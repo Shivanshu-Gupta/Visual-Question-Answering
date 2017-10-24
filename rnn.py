@@ -4,13 +4,13 @@ import torch.nn as nn
 from torch import autograd
 
 
-class customRNN(nn.Module):
+class CustomRNN(nn.Module):
 
     """A module that runs multiple steps of LSTM."""
 
     def __init__(self, cell_class, input_size, hidden_size,
                  use_bias=True, batch_first=False, **kwargs):
-        super(customRNN, self).__init__()
+        super(CustomRNN, self).__init__()
         self.cell_class = cell_class
         self.input_size = input_size
         self.hidden_size = hidden_size

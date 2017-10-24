@@ -2,7 +2,6 @@ import shutil
 import time
 from tensorboardX import SummaryWriter
 import torch
-from torch.autograd import Variable
 
 
 def get_ranges(lengths):

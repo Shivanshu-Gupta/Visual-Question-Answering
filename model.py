@@ -1,13 +1,13 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from lstm import customRNN
+from rnn import CustomRNN
 from gru import CustomGRUCell
 
 
-class POSTaggerModel(nn.Module):
+class POSTagger(nn.Module):
 
     def __init__(self, rnn_class, embedding_dim, hidden_dim, vocab_size, target_size, use_gpu=True):
-        super(POSTaggerModel, self).__init__()
+        super(POSTagger, self).__init__()
         self.rnn_class = rnn_class
         self.hidden_dim = hidden_dim
 
@@ -19,13 +19,13 @@ class POSTaggerModel(nn.Module):
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim.
         if self.rnn_class == 'lstm':
-            self.rnn = customRNN(nn.LSTMCell, embedding_dim, hidden_dim, batch_first=False)
+            self.rnn = CustomRNN(nn.LSTMCell, embedding_dim, hidden_dim, batch_first=False)
         elif self.rnn_class == 'gru':
-            self.rnn = customRNN(nn.GRUCell, embedding_dim, hidden_dim, batch_first=False)
+            self.rnn = CustomRNN(nn.GRUCell, embedding_dim, hidden_dim, batch_first=False)
         elif self.rnn_class == 'rnn':
-            self.rnn = customRNN(nn.RNNCell, embedding_dim, hidden_dim, batch_first=False)
+            self.rnn = CustomRNN(nn.RNNCell, embedding_dim, hidden_dim, batch_first=False)
         else:
-            self.rnn = customRNN(CustomGRUCell, embedding_dim, hidden_dim, batch_first=False)
+            self.rnn = CustomRNN(CustomGRUCell, embedding_dim, hidden_dim, batch_first=False)
         # The linear layer that maps from hidden state space to tag space
         self.hidden2tag = nn.Linear(hidden_dim, target_size)
 

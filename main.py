@@ -5,7 +5,7 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torchtext import data
 from config import parse_args
-from model import POSTaggerModel
+from model import POSTagger
 from train import train_model, test_model
 
 # These will usually be more like 32 or 64 dimensional.
@@ -51,8 +51,8 @@ if __name__ == '__main__':
     print(text_vocab_size)
     print(tag_vocab_size)
 
-    model = POSTaggerModel(args.rnn_class, EMBEDDING_DIM, HIDDEN_DIM,
-                           text_vocab_size, tag_vocab_size, args.use_gpu)
+    model = POSTagger(args.rnn_class, EMBEDDING_DIM, HIDDEN_DIM,
+                      text_vocab_size, tag_vocab_size, args.use_gpu)
     if args.use_gpu:
             model = model.cuda()
 
