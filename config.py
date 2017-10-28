@@ -1,9 +1,10 @@
 import argparse
-
+import yaml
 
 def parse_args():
     print("parsing arguments")
     parser = argparse.ArgumentParser(description='PyTorch TreeLSTM for Sentiment Analysis Trees')
+    parser.add_argument('--config', metavar='PATH',default='config.yml')
     parser.add_argument('--use_gpu', default=False, action='store_true')
 
     parser.add_argument('--data_dir', default='RNN_Data_files/', metavar='PATH')
@@ -36,4 +37,6 @@ def parse_args():
                         help='random seed (default: 123)')
 
     args = parser.parse_args()
-    return args
+    config =yaml.load(open(args.config))
+    return (config,args)
+    #return args
