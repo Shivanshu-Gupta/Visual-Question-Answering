@@ -5,13 +5,13 @@ import torchvision.models as models
 
 
 class ImageEmbedding(nn.Module):
-    def __init__(self):
+    def __init__(self, output_size=1024):
         super(ImageEmbedding, self).__init__()
         self.cnn = models.vgg16(pretrained=True).features
         for param in self.cnn.parameters():
             param.requires_grad = False
         self.fc = nn.Sequential(
-            nn.Linear(512, 1024),
+            nn.Linear(512, output_size),
             nn.Tanh())
 
     def forward(self, image):
@@ -62,17 +62,17 @@ class Attention(nn.Module):
 
 
 class SANModel(nn.Module):
-    def __init__(self, vocab_size, embedding_dim=500, num_att_layers=1, num_mlp_layers=1):
+    def __init__(self, vocab_size, word_emb_size=500, emb_size=1024, att_ff_size=512, output_size=1000, num_att_layers=1, num_mlp_layers=1):
         super(SANModel, self).__init__()
-        self.image_channel = ImageEmbedding()
+        self.image_channel = ImageEmbedding(output_size=emb_size)
 
-        self.word_embeddings = nn.Embedding(vocab_size, embedding_dim, padding_idx=1)
-        self.ques_channel = QuesEmbedding(embedding_dim, num_layers=1, batch_first=False)
+        self.word_embeddings = nn.Embedding(vocab_size, word_emb_size, padding_idx=1)
+        self.ques_channel = QuesEmbedding(word_emb_size, output_size=emb_size, num_layers=1, batch_first=False)
 
-        self.san = nn.ModuleList([Attention()] * num_att_layers)
+        self.san = nn.ModuleList([Attention(d=emb_size, k=att_ff_size)] * num_att_layers)
 
         self.mlp = nn.Sequential(
-            nn.Linear(1024, 1000),
+            nn.Linear(emb_size, output_size),
             nn.Dropout(p=0.5))
 
     def forward(self, images, questions):

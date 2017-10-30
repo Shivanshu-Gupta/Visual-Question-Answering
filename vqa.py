@@ -16,7 +16,7 @@ class Normalize(nn.Module):
 
 
 class ImageEmbedding(nn.Module):
-    def __init__(self, image_channel_type='I'):
+    def __init__(self, image_channel_type='I', output_size=1024):
         super(ImageEmbedding, self).__init__()
         self.extractor = models.vgg16(pretrained=True)
         # freeze feature extractor (VGGNet) parameters
@@ -29,7 +29,7 @@ class ImageEmbedding(nn.Module):
         self.extractor.classifier = nn.Sequential(*extactor_fc_layers)
 
         self.fflayer = nn.Sequential(
-            nn.Linear(4096, 1024),
+            nn.Linear(4096, output_size),
             nn.Tanh())
 
     def forward(self, image):
@@ -39,14 +39,14 @@ class ImageEmbedding(nn.Module):
 
 
 class QuesEmbedding(nn.Module):
-    def __init__(self, input_size=300, hidden_size=512, num_layers=2, batch_first=True):
+    def __init__(self, input_size=300, hidden_size=512, output_size=1024, num_layers=2, batch_first=True):
         super(QuesEmbedding, self).__init__()
         if num_layers == 1:
             self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, batch_first=batch_first)
         else:
             self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=batch_first)
             self.fflayer = nn.Sequential(
-                nn.Linear(2 * num_layers * hidden_size, 1024),
+                nn.Linear(2 * num_layers * hidden_size, output_size),
                 nn.Tanh())
             # self.linear = nn.Linear(2 * num_layers * hidden_size, 1024)
 
@@ -64,22 +64,22 @@ class QuesEmbedding(nn.Module):
 
 class VQAModel(nn.Module):
 
-    def __init__(self, vocab_size, embedding_dim=300, image_channel_type='I', ques_channel_type='LSTM'):
+    def __init__(self, vocab_size, word_emb_size=300, emb_size=1024, output_size=1000, image_channel_type='I', ques_channel_type='LSTM'):
         super(VQAModel, self).__init__()
-        self.image_channel = ImageEmbedding(image_channel_type)
+        self.image_channel = ImageEmbedding(image_channel_type, output_size=emb_size)
 
         # NOTE the padding_idx below.
-        self.word_embeddings = nn.Embedding(vocab_size, embedding_dim, padding_idx=1)
+        self.word_embeddings = nn.Embedding(vocab_size, word_emb_size, padding_idx=1)
         if ques_channel_type == 'LSTM':
-            self.ques_channel = QuesEmbedding(embedding_dim, num_layers=1, batch_first=False)
+            self.ques_channel = QuesEmbedding(input_size=word_emb_size, output_size=emb_size, num_layers=1, batch_first=False)
         else:
-            self.ques_channel = QuesEmbedding(embedding_dim, num_layers=2, batch_first=False)
+            self.ques_channel = QuesEmbedding(input_size=word_emb_size, output_size=emb_size, num_layers=2, batch_first=False)
 
         self.mlp = nn.Sequential(
-            nn.Linear(1024, 1000),
+            nn.Linear(emb_size, 1000),
             nn.Dropout(p=0.5),
             nn.Tanh(),
-            nn.Linear(1000, 1000),
+            nn.Linear(1000, output_size),
             nn.Dropout(p=0.5),
             nn.Tanh())
 
