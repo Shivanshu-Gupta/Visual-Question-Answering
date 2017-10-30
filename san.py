@@ -25,9 +25,9 @@ class ImageEmbedding(nn.Module):
 
 
 class QuesEmbedding(nn.Module):
-    def __init__(self, input_size=500, hidden_size=1024, num_layers=1, batch_first=True):
+    def __init__(self, input_size=500, output_size=1024, num_layers=1, batch_first=True):
         super(QuesEmbedding, self).__init__()
-        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, batch_first=batch_first)
+        self.lstm = nn.LSTM(input_size=input_size, hidden_size=output_size, batch_first=batch_first)
 
     def forward(self, ques):
         # seq_len * N * 500 -> (1 * N * 1024, 1 * N * 1024)
@@ -39,10 +39,12 @@ class QuesEmbedding(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, d=1024, k=512):
+    def __init__(self, d=1024, k=512, dropout=True):
         super(Attention, self).__init__()
         self.ff_image = nn.Linear(d, k)
         self.ff_ques = nn.Linear(d, k)
+        if dropout:
+            self.dropout = nn.Dropout(p=0.5)
         self.ff_attention = nn.Linear(k, 1)
 
     def forward(self, vi, vq):
@@ -52,6 +54,8 @@ class Attention(nn.Module):
         hq = self.ff_ques(vq).unsqueeze(dim=1)
         # N * 196 * 512
         ha = F.tanh(hi + hq)
+        if getattr(self, 'dropout'):
+            ha = self.dropout(ha)
         # N * 196 * 512 -> N * 196 * 1 -> N * 196
         ha = self.ff_attention(ha).squeeze(dim=2)
         pi = F.softmax(ha)
@@ -72,8 +76,8 @@ class SANModel(nn.Module):
         self.san = nn.ModuleList([Attention(d=emb_size, k=att_ff_size)] * num_att_layers)
 
         self.mlp = nn.Sequential(
-            nn.Linear(emb_size, output_size),
-            nn.Dropout(p=0.5))
+            nn.Dropout(p=0.5),
+            nn.Linear(emb_size, output_size))
 
     def forward(self, images, questions):
         embeds = self.word_embeddings(questions)
