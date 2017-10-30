@@ -105,8 +105,4 @@ venv.bak/
 
 .DS_Store
 
-scratch/
-checkpoints/
-scripts/
-runs/
-results/
+sftp-config.json
