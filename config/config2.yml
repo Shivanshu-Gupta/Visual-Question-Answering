@@ -1,0 +1,61 @@
+prefix: vqa1
+verbose: False
+mode: 'train'
+save_dir: 'outputs'
+use_gpu: False
+
+data:
+    path: 'data'
+    random_seed: 1
+    #shuffle: False
+    sentence_path: 'val_sentences.txt'
+    tag_path: 'val_tags.txt'
+    custom_batch_size: 8
+    loader_params: 
+        batch_size: 1
+        num_workers: 4
+        pin_memory: True
+
+checkpoints:
+    path: 'checkpoints.pth.tar'
+    best_model_path: 'best_model_checkpoint.pth.tar'
+
+stats:
+    trainTimeLogs: 'trainingTime.csv'
+    accuracyLogs: 'accuracy.csv'
+    outputOverValidation: 'validationTags.txt'
+
+
+optim:
+    class: sgd
+    scheduler: 'CustomReduceLROnPlateau'
+    scheduler_params:
+        maxPatienceToStopTraining: 16
+        base_class_params:
+            mode: 'min'
+            factor: 0.1
+            patience: 7
+            verbose: True 
+            threshold: 0.05 
+            threshold_mode: 'rel' 
+            cooldown: 0 
+            min_lr: 0.00001
+            eps: 0.000001
+
+    params: 
+        momentum: 0.9
+        lr: 0.1
+        weight_decay: 0.0005 
+
+training:
+    no_of_epochs: 100
+    start_from_checkpoint: True
+    write_output_to_file: True
+
+model:
+    which_model: vqa
+    params:
+        word_em_size: 300
+        emb_size: 1024
+        image_channel_type: 'I'
+        ques_channel_type: 'LSTM'
