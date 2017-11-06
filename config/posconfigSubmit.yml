@@ -1,11 +1,8 @@
-prefix: vqa1
+prefix: gru_submit
 verbose: False
-mode: 'train'
-save_dir: 'outputs'
-use_gpu: False
-model_class: vqa
+mode: test
 data:
-    path: 'data'
+    path: '/home/cse/phd/csz178057/phd/dl/data/RNN_Data_files'
     random_seed: 1
     #shuffle: False
     sentence_path: 'val_sentences.txt'
@@ -17,18 +14,21 @@ data:
         pin_memory: True
 
 checkpoints:
-    path: 'checkpoints.pth.tar'
-    best_model_path: 'best_model_checkpoint.pth.tar'
+    path: '/home/cse/phd/csz178057/phd/dl/data/ass1/rnn/checkpoints.pth.tar'
+    best_model_path: '/home/cse/phd/csz178057/phd/dl/data/ass1/rnn/best_model_checkpoint.pth.tar'
 
 stats:
-    trainTimeLogs: 'trainingTime.csv'
-    accuracyLogs: 'accuracy.csv'
-    outputOverValidation: 'validationTags.txt'
+    trainTimeLogs: '/home/cse/phd/csz178057/phd/dl/data/ass1/rnn/trainingTime.csv'
+    accuracyLogs: '/home/cse/phd/csz178057/phd/dl/data/ass1/rnn/acuracyOverTrainAndValidation.csv'
+    outputOverValidation: '/home/cse/phd/csz178057/phd/dl/data/ass1/rnn/validationTags.txt'
 
 
 optim:
     class: sgd
+    #decay_factor: 0.1
+    #how_many_epochs: 2000
     scheduler: 'CustomReduceLROnPlateau'
+    
     scheduler_params:
         maxPatienceToStopTraining: 16
         base_class_params:
@@ -54,7 +54,6 @@ training:
 
 model:
     params:
-        word_em_size: 300
-        emb_size: 1024
-        image_channel_type: 'I'
-        ques_channel_type: 'LSTM'
+        embedding_dim: 300
+        hidden_dim: 200
+        cell: gru

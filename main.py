@@ -7,6 +7,7 @@ from torchtext import data
 from config import parse_args
 from model import POSTagger
 from train import train_model, test_model
+import utilities as uc
 
 # These will usually be more like 32 or 64 dimensional.
 # We will keep them small, so we can see how the weights change as we train.
@@ -38,12 +39,12 @@ def save_params():
 
 if __name__ == '__main__':
     global args
-    args = parse_args()
+    (config,args) = parse_args()
     save_params()
     args.use_gpu = args.use_gpu and torch.cuda.is_available()
     print(args)
-    torch.manual_seed(args.seed)
-    torch.cuda.manual_seed(args.seed)
+    torch.manual_seed(config['data']['seed'])
+    torch.cuda.manual_seed(config['data']['seed'])
 
     text, tags, dataloaders = load_datasets()
     text_vocab_size = len(text.vocab.stoi) + 1

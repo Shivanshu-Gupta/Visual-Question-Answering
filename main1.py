@@ -252,10 +252,15 @@ def bulkTest(config):
         main(thisConfig,'test')
 
 
-def main(config,mode,onlyTest = False):
+def enhance_config(config):
     config['use_gpu'] = config['use_gpu'] and torch.cuda.is_available()
     use_gpu = config['use_gpu']
+    config['model']['model_class'] = config['model_class']
+    config['data']['model_class'] = config['model_class']
 
+
+def main(config,mode,onlyTest = False):
+    use_gpu = config['use_gpu']
     if not onlyTest:
         (trainloader,validationloader) = uc.getVQATrainAndValidationLoader(config)
         testloader = uc.getVQATestLoader(config)
@@ -267,12 +272,13 @@ def main(config,mode,onlyTest = False):
         vocab_size = len(testloader.dataset.word_to_ix)
         output_size = len(testloader.dataset.ans_to_ix)
 
+
     config['model']['params']['vocab_size'] = vocab_size
     config['model']['params']['output_size'] = output_size
 
-    if config['model']['which_model'] == 'vqa':
+    if config['model']['model_class'] == 'vqa':
         net = vqa.VQAModel(**config['model']['params'])
-    elif config['model']['which_model'] == 'san':
+    elif config['model']['model_class'] == 'san':
         net = san.SANModel(**config['model']['params'])
     #
     criterion = nn.NLLLoss()

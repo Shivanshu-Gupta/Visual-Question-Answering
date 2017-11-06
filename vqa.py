@@ -64,7 +64,7 @@ class QuesEmbedding(nn.Module):
 
 class VQAModel(nn.Module):
 
-    def __init__(self, vocab_size, word_emb_size=300, emb_size=1024, output_size=1000, image_channel_type='I', ques_channel_type='LSTM'):
+    def __init__(self, vocab_size, word_emb_size=300, emb_size=1024, output_size=1000, image_channel_type='I', ques_channel_type='LSTM',is_feature  = True):
         super(VQAModel, self).__init__()
         self.image_channel = ImageEmbedding(image_channel_type, output_size=emb_size)
 
@@ -83,9 +83,17 @@ class VQAModel(nn.Module):
             nn.Dropout(p=0.5),
             nn.Tanh())
 
-    def forward(self, images, questions):
+    def save_image_features():
+        pass
+
+    def forward(self, images, questions, image_ids = None):
         embeds = self.word_embeddings(questions)
-        image_embeddings = self.image_channel(images)
+        if not is_feature:
+            image_embeddings = self.image_channel(images)
+            self.save_image_features(image_embeddings,image_ids)
+        else:
+            image_embeddings = images
+        #
         ques_embeddings = self.ques_channel(embeds)
         combined = image_embeddings * ques_embeddings
         output = self.mlp(combined)
