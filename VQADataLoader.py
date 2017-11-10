@@ -41,26 +41,26 @@ class VQADataSet(torch.utils.data.Dataset):
         #
         quesfnT = os.path.join(rootDir,'v2_OpenEnded_mscoco_train2014_questions.json')
         annfnT = os.path.join(rootDir,'v2_mscoco_train2014_annotations.json')
-        imgfnT = os.path.join(rootDir,'train2014')
+        imgfnT = os.path.join(rootDir,'train2014/COCO_train2014_')
 
         quesfnV = os.path.join(rootDir,'v2_OpenEnded_mscoco_val2014_questions.json')#FIXME @keshav: Must fill in
         annfnV = os.path.join(rootDir,'v2_mscoco_val2014_annotations.json')
-        imgfnV = os.path.join(rootDir,'train2014')
+        imgfnV = os.path.join(rootDir,'val2014/COCO_val2014_')
 
 
         if train:
             qfn = quesfnT
             afn = annfnT
-            idir = imgfnT
+            self.idir = imgfnT
         elif validation:
             qfn = quesfnV
             afn = annfnV
-            idir = imgfnV
+            self.idir = imgfnV
         elif (os.path.exists(os.path.join(rootDir,questionFileName)) and
                 os.path.exists(os.path.join(rootDir,imageDir))):
             qfn = os.path.join(rootDir,questionFileName)
             afn = os.path.join(rootDir,annotationFileName)
-            idir = os.path.join(rootDir,imageDir)
+            self.idir = os.path.join(rootDir,imageDir)
         else:
             print("neither train is True nor validation is True. Or any one of  questionFileName:{0} or imageDir {1}\
                 missing".format(os.path.join(rootDir,questionFileName),os.path.join(rootDir,imageDir)))
@@ -245,7 +245,8 @@ class VQADataSet(torch.utils.data.Dataset):
         question, answer, image_id = self.intData[self.ind[idx]]        
 
         if self.features_dir is None:
-            img = Image.open(os.path.join(self.rootDir,'train2014',"COCO_train2014_"+("%012d"%image_id)+'.jpg'))
+            #img = Image.open(os.path.join(self.idir,"COCO_train2014_"+("%012d"%image_id)+'.jpg'))
+            img = Image.open(self.idir+("%012d"%image_id)+'.jpg')
             img = img.convert('RGB')
             if self.transforms is not None:
                 img = self.transforms(img)

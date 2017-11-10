@@ -10,7 +10,8 @@ class ImageEmbedding(nn.Module):
     def __init__(self, output_size=1024):
         super(ImageEmbedding, self).__init__()
         #Pdb().set_trace()
-        self.cnn = nn.Sequential(*list(models.vgg16(pretrained=True).features.children())) #FIXME: Only temporary for the first experiment
+        self.cnn = models.vgg16(pretrained=True).features 
+        #self.cnn = nn.Sequential(*list(models.vgg16(pretrained=True).features.children())) #FIXME: Only temporary for the first experiment
 
 
         for param in self.cnn.parameters():

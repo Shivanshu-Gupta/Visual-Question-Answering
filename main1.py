@@ -60,6 +60,15 @@ def accuracy(answer_scores,labels,topk = (1,),dataloader=None,writeToFile=False,
     #Pdb().set_trace()
     _, pred = answer_scores.topk(maxk)
     pred = pred.view(-1,maxk).t()
+    if (pred == 0).sum() == 1:
+        _, tpred = answer_scores.topk(maxk+1)
+        tpred = tpred.view(-1,maxk+1).t()
+        # pred: maxk * examples
+        for j in range(pred.size(1)): #Iterate through examples
+            for i in range(pred.size(0)): # Iterate through maxk
+                if(pred[i][j] == 0):
+                    pred[i][j] = tpred[maxk][j]
+                    break # there cannot be more than 1 zero in a column
     correct = pred.eq(labels.view(1,-1).expand_as(pred))
     res = []
     for k in topk:
@@ -124,32 +133,36 @@ def validate(config,dataloader,net,criterion,optimizer,epoch,whichSet,whichModel
         customBatchSize = config['data']['custom_batch_size']
 
     print('batch size: {0}'.format(customBatchSize))
-    for i,(inputs,labels) in uc.customSentenceBatcher(dataloader,customBatchSize):
+    for i,(inputs,labels,images,image_ids) in uc.customVQADataBatcher(dataloader,config['data']['custom_batch_size']):
+        if(config['debug'] == True and i>10):
+            break
     #for i, (inputs, labels) in enumerate(dataloader, 0):
         dataLoadingTime.update(time.time() - end) 
          
         if torch.cuda.is_available():
             inputs,labels = inputs.cuda(), labels.cuda(async=asyncVar)
+            images = images.cuda()
 
         #
         batchSize = labels.size()[0]
-        nwords = labels.size()[1]
+        #nwords = labels.size()[1]
         nsentences  += batchSize
         labels = torch.autograd.Variable(labels, volatile=True)
         #need to extract 5 datasets from current batch and take average for prediction
         inputs = torch.autograd.Variable(inputs, volatile=True)
+        images = torch.autograd.Variable(images, volatile=True)
         # compute output
-        output = net(inputs)
+        output = net(images,inputs)
         #
-        loss = criterion(output.view(-1,config['data']['tagset_size']), labels.view(-1))
+        loss = criterion(output, labels)
         if writeToFile:
             prec1, prec5 = accuracy(output.data, labels.data, topk=(1, 5),dataloader=dataloader,writeToFile=writeToFile,fh = ofh)
         else:
             prec1, prec5 = accuracy(output.data, labels.data, topk=(1, 5))
 
-        losses.update(loss.data[0],batchSize*nwords )
-        top1.update(prec1[0], batchSize*nwords)
-        top5.update(prec5[0], batchSize*nwords)
+        losses.update(loss.data[0],batchSize)
+        top1.update(prec1[0], batchSize)
+        top5.update(prec5[0], batchSize)
         # measure elapsed time
         batchTime.update(time.time() - end)
         end = time.time()
@@ -183,9 +196,10 @@ def train(config,trainloader,net,criterion,optimizer,epoch):
     end = time.time()
     #Tracer()()
     nsentences= 0
-    for i, (inputs, labels, images, image_ids) in enumerate(trainloader, 0):
+    for i, (inputs, labels, images, image_ids) in uc.customVQADataBatcher(trainloader,config['data']['custom_batch_size']):
+        if(config['debug'] == True and i > 10):
+            break
     #inputs refers to questions, labels refers to gt answers
-
     #for i,(inputs,labels) in uc.customSentenceBatcher(trainloader,config['data']['custom_batch_size']):
         # get the inputs
         dataLoadingTime.update(time.time() - end) 
@@ -227,7 +241,6 @@ def train(config,trainloader,net,criterion,optimizer,epoch):
 
     lr = getLearningRate(optimizer)
     dtstr = str(dt.now())
-    print("Exited")
 
     print("{0},{1},{2},{3},{4},{5:.3f},{6:.3f},{7:.3f},{8:.2f},{9:.2f},{10:.5f},{11}".format(dtstr,epoch, trainingTime.count,nsentences,top1.count, top1.avg, top5.avg, losses.avg, trainingTime.sum,dataLoadingTime.sum,lr,config['model_name'] ))
     fh = open(config['stats']['trainTimeLogs'],'a+')
@@ -301,7 +314,7 @@ def enhance_config(config):
     config['data']['model_class'] = config['model_class']
     config['data']['features_dir'] = os.path.join(config['data']['path'],config['data']['features_dir'])
     config['model']['params']['features_dir'] = config['data']['features_dir']
-    config['model']['mode'] = config['mode']
+    config['model']['params']['mode'] = config['mode']
 
     if not os.path.exists(config['data']['features_dir']):
         os.makedirs(config['data']['features_dir'])
@@ -342,6 +355,9 @@ m.enhance_config(config)
 def main(config,mode,onlyTest = False):
     use_gpu = config['use_gpu']
     enhance_config(config)
+
+    if(config['debug'] == True):
+        print("****DEBUG MODE****")
 
     #Pdb().set_trace()
     if not onlyTest:
@@ -399,8 +415,9 @@ def main(config,mode,onlyTest = False):
                 return
    
     if mode == 'write_features':
-        save_image_features(config,trainloader,net)
-
+        #save_image_features(config,trainloader,net)
+        save_image_features(config,validationloader,net)
+        return
 
     if mode == 'test':
         epoch = startEpoch - 1
