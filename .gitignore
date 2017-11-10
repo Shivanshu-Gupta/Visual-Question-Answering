@@ -106,3 +106,4 @@ venv.bak/
 .DS_Store
 
 sftp-config.json
+outputs/

@@ -1,9 +1,10 @@
 # feature extaction from pretrained model: https://discuss.pytorch.org/t/how-to-extract-features-of-an-image-from-a-trained-model/119/3
-import torch
+import torch,os
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
-
+from IPython.core.debugger import Pdb
+import UtilityClasses as uc
 
 class Normalize(nn.Module):
         def __init__(self, p=2):
@@ -24,15 +25,19 @@ class ImageEmbedding(nn.Module):
             param.requires_grad = False
 
         extactor_fc_layers = list(self.extractor.classifier.children())[:-1]
-        if image_channel_type == 'norm I':
+        if image_channel_type.lower() == 'normi':
             extactor_fc_layers.append(Normalize(p=2))
         self.extractor.classifier = nn.Sequential(*extactor_fc_layers)
 
+        #if torch.cuda.is_available():
+        #    self.extractor = self.extractor.cuda()
+        #
         self.fflayer = nn.Sequential(
             nn.Linear(4096, output_size),
             nn.Tanh())
 
     def forward(self, image):
+        #Pdb().set_trace()
         image_embedding = self.extractor(image)
         image_embedding = self.fflayer(image_embedding)
         return image_embedding
@@ -64,12 +69,23 @@ class QuesEmbedding(nn.Module):
 
 class VQAModel(nn.Module):
 
-    def __init__(self, vocab_size, word_emb_size=300, emb_size=1024, output_size=1000, image_channel_type='I', ques_channel_type='LSTM',is_feature  = True):
+    def __init__(self, vocab_size=10000, word_emb_size=300, emb_size=1024, output_size=1000, image_channel_type='I', ques_channel_type='LSTM',mode='train',features_dir=None):
         super(VQAModel, self).__init__()
+        self.mode = mode
+        self.features_dir = features_dir
+        self.word_emb_size = word_emb_size
         self.image_channel = ImageEmbedding(image_channel_type, output_size=emb_size)
 
+        """
+        if self.features_dir is not None:
+            dir_name  = os.path.dirname(self.features_dir)
+            base_name = os.path.dirname(self.features_dir)
+            base_name = base_name + '_'+ ''.join(image_channel_type.split())  + '_' + str(emb_size)
+            self.features_dir = os.path.join(dir_name,base_name)
+        """
         # NOTE the padding_idx below.
-        self.word_embeddings = nn.Embedding(vocab_size, word_emb_size, padding_idx=1)
+        self.word_embeddings = nn.Embedding(vocab_size, word_emb_size)
+        #self.word_embeddings = nn.Embedding(vocab_size, word_emb_size, padding_idx=1)
         if ques_channel_type == 'LSTM':
             self.ques_channel = QuesEmbedding(input_size=word_emb_size, output_size=emb_size, num_layers=1, batch_first=False)
         else:
@@ -83,18 +99,31 @@ class VQAModel(nn.Module):
             nn.Dropout(p=0.5),
             nn.Tanh())
 
-    def save_image_features():
-        pass
-
+    """
+    def save_image_features(self,features,image_ids,features_dir):
+        bs = features.data.shape[0]
+        for image_num in range(bs):
+            thisFeature = features.data[image_num]
+            thisImageId = image_ids.data[image_num]
+            fileName = os.path.join(features_dir,str(thisImageId))
+            if(not os.path.exists(fileName)):
+                torch.save(thisFeature.cpu(),fileName)
+    """     
+        
     def forward(self, images, questions, image_ids = None):
-        embeds = self.word_embeddings(questions)
-        if not is_feature:
+        #Pdb().set_trace()
+        if self.mode == 'write_features':
             image_embeddings = self.image_channel(images)
-            self.save_image_features(image_embeddings,image_ids)
+            uc.save_image_features(image_embeddings,image_ids,self.features_dir)
+            return 0
         else:
             image_embeddings = images
         #
-        ques_embeddings = self.ques_channel(embeds)
+        embeds = self.word_embeddings(questions)
+        nbatch = embeds.size()[0]
+        nwords = embeds.size()[1]
+        ques_embeddings = self.ques_channel(embeds.view(nwords,nbatch,self.word_emb_size))
+        #ques_embeddings = self.ques_channel(embeds)
         combined = image_embeddings * ques_embeddings
         output = self.mlp(combined)
         return output

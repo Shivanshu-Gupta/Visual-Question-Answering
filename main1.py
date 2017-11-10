@@ -31,7 +31,9 @@ def prefixId(config):
     save_dir = os.path.join(os.getcwd(),config['save_dir'])
     save_dir = os.path.join(save_dir,prefix)
 
-    os.makedirs(save_dir, exist_ok=True)
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
     for mk in ['checkpoints','stats']:
         if config.has_key(mk):
             for k in config[mk].keys():
@@ -51,22 +53,54 @@ def printHeaders(config):
     print("time,epoch,nbatches,nsentences,nwords,top1,top5,loss,dataLoadingTime,trainingTime,lr,whichSet,whichModel",file=fh)
     print("time,epoch,nbatches,nsentences,nwords,top1,top5,loss,dataLoadingTime,trainingTime,lr,whichSet,whichModel")
 
-def accuracy(tag_scores,labels,topk = (1,),dataloader=None,writeToFile=False,fh=None):
+def accuracy(answer_scores,labels,topk = (1,),dataloader=None,writeToFile=False,fh=None):
     maxk = max(topk)
     batchSize = labels.size()[0]
-    nwords = labels.size()[1]
-    _, pred = tag_scores.topk(maxk,2)
+    #nwords = labels.size()[1]
+    #Pdb().set_trace()
+    _, pred = answer_scores.topk(maxk)
     pred = pred.view(-1,maxk).t()
     correct = pred.eq(labels.view(1,-1).expand_as(pred))
     res = []
     for k in topk:
         correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
-        res.append(correct_k.mul_(1.0 / (batchSize*nwords)))
+        res.append(correct_k.mul_(1.0 / (batchSize)))
     #
     if dataloader is not None and batchSize == 1:
-        print(' '.join([dataloader.dataset.ix_to_tag[x] for x in pred[0,:]]),file=fh)
+        print(' '.join([dataloader.dataset.itoa[x] for x in pred[0,:]]),file=fh)
     #
     return res
+
+
+def save_image_features(config,dataloader,net):
+    net.eval()
+    asyncVar = config['data']['loader_params'].has_key('pin_memory') and config['data']['loader_params']['pin_memory']
+    #for i, (inputs, labels, images,image_ids) in enumerate(dataloader, 0):
+    for i,(inputs,labels,images,image_ids) in uc.customVQADataBatcher(dataloader,config['data']['custom_batch_size']):
+        #if i == 0:
+        #    break
+        dtstr = dt.now()
+        if i%10 == 0:
+            print(dtstr,i)
+
+        #print('batch size: ',inputs.size()[0], ' nwords: ',inputs.size()[1])
+        inputs, labels,images = Variable(inputs,volatile=True), Variable(labels,volatile=True), Variable(images,volatile=True)
+        image_ids = Variable(image_ids,volatile=True)
+        features_exist = True
+        num_missing = 0
+        for id in image_ids:
+            if not os.path.exists(os.path.join(config['data']['features_dir'],str(id.data[0]))):
+                features_exist = False
+                num_missing += 1
+        if not features_exist:
+            print('how many missing: ',num_missing)
+            if torch.cuda.is_available():
+                inputs,labels = inputs.cuda(), labels.cuda(async=asyncVar)
+                images = images.cuda()
+                image_ids=  image_ids.cuda()
+        
+            outputs = net(images,inputs,image_ids)
+            
 
 
 def validate(config,dataloader,net,criterion,optimizer,epoch,whichSet,whichModel):
@@ -134,6 +168,9 @@ def getLearningRate(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
 
+
+    
+
 def train(config,trainloader,net,criterion,optimizer,epoch):
     net.train()
     #Pdb().set_trace()
@@ -146,29 +183,31 @@ def train(config,trainloader,net,criterion,optimizer,epoch):
     end = time.time()
     #Tracer()()
     nsentences= 0
-    #for i, (inputs, labels) in enumerate(trainloader, 0):
-    for i,(inputs,labels) in uc.customSentenceBatcher(trainloader,config['data']['custom_batch_size']):
+    for i, (inputs, labels, images, image_ids) in enumerate(trainloader, 0):
+    #inputs refers to questions, labels refers to gt answers
+
+    #for i,(inputs,labels) in uc.customSentenceBatcher(trainloader,config['data']['custom_batch_size']):
         # get the inputs
         dataLoadingTime.update(time.time() - end) 
         batchSize = labels.size()[0]
-        nwords = labels.size()[1]
-        nsentences  += batchSize
+        #nwords = labels.size()[1]
+        nsentences += batchSize
         #print("batchNumber: {0}, inputSize: {1}, labelSize:{2}, nsentences: {3}".format(i,str(inputs.size()), str(labels.size()), nsentences))
         # wrap them in Variable
-        inputs, labels = Variable(inputs), Variable(labels)
+        inputs, labels,images = Variable(inputs), Variable(labels), Variable(images)
         if torch.cuda.is_available():
             inputs,labels = inputs.cuda(), labels.cuda(async=asyncVar)
-        # zero the parameter gradients
+            images = images.cuda()
 
-        # forward + backward + optimize
-        outputs = net(inputs)
-        loss = criterion(outputs.view(-1,config['data']['tagset_size']), labels.view(-1))
+        outputs = net(images,inputs)
+        #loss = criterion(outputs.view(-1,config['data']['tagset_size']), labels.view(-1))
+        loss = criterion(outputs, labels)
         # measure accuracy and record loss
         evaluationStartTime = time.time()
         prec1, prec5 = accuracy(outputs.data, labels.data, topk=(1, 5))
-        losses.update(loss.data[0], batchSize*nwords)
-        top1.update(prec1[0], batchSize*nwords)
-        top5.update(prec5[0], batchSize*nwords)
+        losses.update(loss.data[0], batchSize)
+        top1.update(prec1[0], batchSize)
+        top5.update(prec5[0], batchSize)
         
         #compute gradient and do SGD step
         optimizer.zero_grad()
@@ -188,6 +227,7 @@ def train(config,trainloader,net,criterion,optimizer,epoch):
 
     lr = getLearningRate(optimizer)
     dtstr = str(dt.now())
+    print("Exited")
 
     print("{0},{1},{2},{3},{4},{5:.3f},{6:.3f},{7:.3f},{8:.2f},{9:.2f},{10:.5f},{11}".format(dtstr,epoch, trainingTime.count,nsentences,top1.count, top1.avg, top5.avg, losses.avg, trainingTime.sum,dataLoadingTime.sum,lr,config['model_name'] ))
     fh = open(config['stats']['trainTimeLogs'],'a+')
@@ -225,6 +265,8 @@ def jobManager():
     #Pdb().set_trace()
     config =  prefixId(config)
     printHeaders(config)
+    if config['mode'].lower() == 'write_features':
+        main(config,'write_features')
     if config['mode'].lower() == 'train':
         main(config,'train')
     elif config['mode'].lower() == 'test':
@@ -257,21 +299,61 @@ def enhance_config(config):
     use_gpu = config['use_gpu']
     config['model']['model_class'] = config['model_class']
     config['data']['model_class'] = config['model_class']
+    config['data']['features_dir'] = os.path.join(config['data']['path'],config['data']['features_dir'])
+    config['model']['params']['features_dir'] = config['data']['features_dir']
+    config['model']['mode'] = config['mode']
+
+    if not os.path.exists(config['data']['features_dir']):
+        os.makedirs(config['data']['features_dir'])
+
+"""
+Test script
+from __future__ import print_function
+from datetime import datetime as dt
+
+import yaml,torch,shutil
+from torch.autograd import Variable
+
+import torch.nn.functional as F
+import torch.optim as optim
+import torch.nn as nn
+
+
+import os,sys
+import UtilityClasses as uc
+
+import time
+import argparse
+parser = argparse.ArgumentParser()
+from IPython.core.debugger import Pdb
+
+import vqa
+import san
+
+import main1 as m
+config = yaml.load(open('config/config3.yml'))
+m.enhance_config(config)
+
+
+"""
+
 
 
 def main(config,mode,onlyTest = False):
     use_gpu = config['use_gpu']
+    enhance_config(config)
+
+    #Pdb().set_trace()
     if not onlyTest:
         (trainloader,validationloader) = uc.getVQATrainAndValidationLoader(config)
-        testloader = uc.getVQATestLoader(config)
-        vocab_size = len(trainloader.dataset.word_to_ix)
-        output_size = len(validationloader.dataset.ans_to_ix)
-        
+        #testloader = uc.getVQATestLoader(config)
+        vocab_size = trainloader.dataset.q_vocab_size
+        output_size = trainloader.dataset.a_vocab_size
+         
     else:
         testloader = uc.getPOSDataLoaderFromFile(config)
-        vocab_size = len(testloader.dataset.word_to_ix)
-        output_size = len(testloader.dataset.ans_to_ix)
-
+        vocab_size = testloader.dataset.q_vocab_size
+        output_size = testloader.dataset.a_vocab_size
 
     config['model']['params']['vocab_size'] = vocab_size
     config['model']['params']['output_size'] = output_size
@@ -280,13 +362,13 @@ def main(config,mode,onlyTest = False):
         net = vqa.VQAModel(**config['model']['params'])
     elif config['model']['model_class'] == 'san':
         net = san.SANModel(**config['model']['params'])
-    #
+    
     criterion = nn.NLLLoss()
 
     if(config['optim']['class'].lower() == 'sgd'):
-        optimizer = optim.SGD(net.parameters(),**config['optim']['params'])
+        optimizer = optim.SGD(filter(lambda p: p.requires_grad, net.parameters()),**config['optim']['params'])
     else:
-        optimizer = optim.Adam(net.parameters(),**config['optim']['params'])
+        optimizer = optim.Adam(filter(lambda p: p.requires_grad, net.parameters()),**config['optim']['params'])
     
     if(use_gpu):
         print("Cuda is True.....converting model and loss fn to .cuda")
@@ -315,7 +397,11 @@ def main(config,mode,onlyTest = False):
             if mode == 'test':
                 print(" = > Error: could not find any model at the given path. Quitting...")
                 return
-    
+   
+    if mode == 'write_features':
+        save_image_features(config,trainloader,net)
+
+
     if mode == 'test':
         epoch = startEpoch - 1
         testLoss,testPrec1 = validate(config,testloader, net, criterion, optimizer,epoch,'testSet',config['model_name'])  

@@ -2,12 +2,17 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
+import UtilityClasses as uc
 
+from IPython.core.debugger import Pdb
 
 class ImageEmbedding(nn.Module):
     def __init__(self, output_size=1024):
         super(ImageEmbedding, self).__init__()
-        self.cnn = models.vgg16(pretrained=True).features
+        #Pdb().set_trace()
+        self.cnn = nn.Sequential(*list(models.vgg16(pretrained=True).features.children())) #FIXME: Only temporary for the first experiment
+
+
         for param in self.cnn.parameters():
             param.requires_grad = False
         self.fc = nn.Sequential(
@@ -15,7 +20,8 @@ class ImageEmbedding(nn.Module):
             nn.Tanh())
 
     def forward(self, image):
-        # N * 448 * 448 -> N * 512 * 14 * 14
+        #Pdb().set_trace()
+        # N * 224 * 224 -> N * 512 * 14 * 14
         feature_map = self.cnn(image)
         # N * 512 * 14 * 14 -> N * 512 * 196 -> N * 196 * 512
         feature_map = feature_map.view(-1, 512, 196).transpose(1, 2)
@@ -66,11 +72,15 @@ class Attention(nn.Module):
 
 
 class SANModel(nn.Module):
-    def __init__(self, vocab_size, word_emb_size=500, emb_size=1024, att_ff_size=512, output_size=1000, num_att_layers=1, num_mlp_layers=1):
+    def __init__(self, vocab_size, word_emb_size=500, emb_size=1024, att_ff_size=512, output_size=1000, num_att_layers=1, num_mlp_layers=1, is_feature= True, features_dir = None ):
         super(SANModel, self).__init__()
+        self.is_feature = is_feature
+        self.features_dir = features_dir
         self.image_channel = ImageEmbedding(output_size=emb_size)
 
-        self.word_embeddings = nn.Embedding(vocab_size, word_emb_size, padding_idx=1)
+        self.word_emb_size = word_emb_size
+        self.word_embeddings = nn.Embedding(vocab_size, word_emb_size)
+        #self.word_embeddings = nn.Embedding(vocab_size, word_emb_size, padding_idx=1)
         self.ques_channel = QuesEmbedding(word_emb_size, output_size=emb_size, num_layers=1, batch_first=False)
 
         self.san = nn.ModuleList([Attention(d=emb_size, k=att_ff_size)] * num_att_layers)
@@ -79,10 +89,23 @@ class SANModel(nn.Module):
             nn.Dropout(p=0.5),
             nn.Linear(emb_size, output_size))
 
-    def forward(self, images, questions):
+    def forward(self, images, questions,image_ids):
+        #Pdb().set_trace()
+        #image_embeddings = self.image_channel(images)
+        if not self.is_feature:
+            image_embeddings = self.image_channel(images)
+            uc.save_image_features(image_embeddings,image_ids,self.features_dir)
+            return 0
+        else:
+            image_embeddings = images
+        #
+        
+        #Pdb().set_trace()
         embeds = self.word_embeddings(questions)
-        image_embeddings = self.image_channel(images)
-        ques_embeddings = self.ques_channel(embeds)
+        nbatch = embeds.size()[0]
+        nwords = embeds.size()[1]
+        
+        ques_embeddings = self.ques_channel(embeds.view(nwords,nbatch,self.word_emb_size))
         vi = image_embeddings
         u = ques_embeddings
         for att_layer in self.san:

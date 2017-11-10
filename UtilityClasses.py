@@ -8,15 +8,91 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset, DataLoader
 import os,sys,shutil
 from torch.optim import lr_scheduler
+import VQADataLoader as vqad
 #import POSDataLoader as posd
+import string, re
+
+re_for_spaces_around_puct = re.compile('([.,!?()])')
+
+def removePunctuations(sent):
+    return sent.translate(None,string.punctuation)
+
+def insertSpacesAroundPunctuations(sent):
+    return (re_for_spaces_around_puct.sub(r' \1 ', sent))
+
+def save_image_features(features,image_ids,features_dir):
+    bs = features.data.shape[0]
+    for image_num in range(bs):
+        thisFeature = features.data[image_num]
+        thisImageId = image_ids.data[image_num]
+        fileName = os.path.join(features_dir,str(thisImageId))
+        if(not os.path.exists(fileName)):
+            torch.save(thisFeature.cpu(),fileName)
+
 
 
 def getVQATrainAndValidationLoader(config):
+    crop_param = config['data']['crop_params']
+    scale_param = tuple(config['data']['scale_params'])
+    #
+    transform = transforms.Compose(
+            [transforms.Scale(scale_param), 
+            transforms.CenterCrop(crop_param),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225])
+            ])
+    validationTransforms = transforms.Compose([
+            transforms.Scale(scale_param),
+            transforms.CenterCrop(crop_param),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225])
+            ]) 
+
+    dataPath = os.path.join(os.getcwd(),config['data']['path'])
+    if(config['mode']=='write_features'):
+        fdir  = None
+    else:
+        fdir = config['data']['features_dir']
+    trainset = vqad.VQADataSet(rootDir=dataPath, train=True,
+                                      transforms=transform,model_class=config['model_class'],debug = config['debug'],batch_size = config['data']['custom_batch_size'],features_dir=fdir)
+    # 
+    validset = vqad.VQADataSet(rootDir=dataPath, validation=True, 
+                 transforms=validationTransforms,model_class = config['model_class'],debug = config['debug'],features_dir=fdir)
+    #
+    numTrain = len(trainset)
+    indices = list(range(numTrain))
+    # 
+    #if config['data']['shuffle'] == True:
+    #    np.random.seed(config['data']['random_seed'])
+    #    np.random.shuffle(indices)
+    #
+    #trainsampler = torch.utils.data.sampler.SubsetRandomSampler(indices)
+    trainloader = torch.utils.data.DataLoader(trainset, **config['data']['loader_params'])
+    validloader = torch.utils.data.DataLoader(validset,**config['data']['loader_params'])
+    return(trainloader,validloader)
     pass
+
+
 
 def getVQATestLoader(config):
-    pass
+    transform = transforms.Compose(
+            [transforms.Scale((256,256)), 
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225])
+            ])
+   
+    dataPath = os.path.join(os.getcwd(),config['data']['path'])
 
+    qfn = config['data']['questions_path']
+    afn = config['data']['annotation_path']
+    imageDir = os.path.join(dataPath,'train2014')
+    testset = vqad.VQADataSet(rootDir=dataPath,questionFileName=qfn, annotationFileName=afn,imageDir=imageDir,model_class=config['model_class'], transforms=transform,debug = config['debug'])
+    testloader = torch.utils.data.DataLoader(testset,**config['data']['loader_params'])
+    return testloader
 """
 def getTrainAndValidationLoaderCifar10(config):
     transform = transforms.Compose(
@@ -75,6 +151,35 @@ def getPOSDataLoader(config):
     validloader = torch.utils.data.DataLoader(validSet,**config['data']['loader_params'])
     return(trainloader,validloader)
 """
+
+def customVQADataBatcher(loader,batchSize=1):
+    batchNumber = -1
+    
+    runningInputs = []
+    runningLabels = []
+    runningImages = []
+    runningImageIds = []
+
+    runningSize = -1
+    for i,(si,sl,im,imid) in enumerate(loader,0):
+        ts = si.size()[1]
+        if (len(runningInputs) != 0) and ((ts != runningSize) or len(runningInputs) == batchSize):
+            inputs = torch.cat(runningInputs,0)
+            labels = torch.cat(runningLabels,0)
+            images = torch.cat(runningImages,0)
+            imageIds = torch.cat(runningImageIds,0)
+            batchNumber += 1
+            yield(batchNumber,(inputs,labels,images,imageIds))
+            runningInputs = []
+            runningLabels = []
+            runningImages = []
+            runningImageIds = []
+        #
+        runningSize = ts
+        runningInputs.append(si)
+        runningLabels.append(sl)
+        runningImages.append(im)
+        runningImageIds.append(imid)
 
 def customSentenceBatcher(loader,batchSize=1):
     batchNumber = -1

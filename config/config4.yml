@@ -1,9 +1,9 @@
 prefix: vqa1
 verbose: False
-mode: 'train'
+mode: 'write_features'
 save_dir: '/home/cse/phd/csz178057/Visual-Question-Answering/outputs'
 use_gpu: True
-model_class: vqa
+model_class: san
 debug: False
 data:
     path: '/home/cse/phd/csz178058/scratch/vqadata/'
@@ -11,10 +11,10 @@ data:
     #shuffle: False
     questions_path: 'v2_OpenEnded_mscoco_val2014_questions.json'
     annotation_path: 'v2_mscoco_val2014_annotations.json'
-    custom_batch_size: 128
-    features_dir: 'train2014_vqa_i_1024'
-    scale_params: [256,256]
-    crop_params: 228
+    custom_batch_size: 64
+    features_dir: 'train2014_san_i_1024_448'
+    scale_params: [448,448]
+    crop_params: 448
     loader_params: 
         batch_size: 1
         num_workers: 4
@@ -60,5 +60,7 @@ model:
     params:
         word_emb_size: 300
         emb_size: 1024
-        image_channel_type: 'I'
-        ques_channel_type: 'LSTM'
+        att_ff_size: 512
+        num_att_layers: 1
+        num_mlp_layers: 1
+        is_feature: False
