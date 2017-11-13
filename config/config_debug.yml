@@ -31,7 +31,7 @@ stats:
 
 
 optim:
-    class: sgd
+    class: adam
     scheduler: 'CustomReduceLROnPlateau'
     scheduler_params:
         maxPatienceToStopTraining: 16
@@ -47,7 +47,7 @@ optim:
             eps: 0.000001
 
     params: 
-        momentum: 0.9
+        #momentum: 0.9
         lr: 0.0004
         weight_decay: 0.0005 
     clip: 0.1

@@ -215,6 +215,7 @@ def train(config,trainloader,net,criterion,optimizer,epoch):
 
         outputs = net(images,inputs)
         #loss = criterion(outputs.view(-1,config['data']['tagset_size']), labels.view(-1))
+        #Pdb().set_trace()
         loss = criterion(outputs, labels)
         # measure accuracy and record loss
         evaluationStartTime = time.time()

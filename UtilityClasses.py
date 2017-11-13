@@ -176,13 +176,12 @@ def customVQADataBatcher(loader,batchSize=1):
             ts = si.size(0)
             if (len(runningInputs) != 0) and ((ts != runningSize) or len(runningInputs) == batchSize):
                 # Pdb().set_trace()
-                print("Total time = %f, i=%d, batch_num=%d"%(totalTime,i,batchNumber))
                 inputs = torch.cat(runningInputs,0)
                 labels = torch.cat(runningLabels,0)
                 images = torch.cat(runningImages,0)
                 imageIds = torch.cat(runningImageIds,0)
                 batchNumber += 1
-                yield(batchNumber,(inputs,labels,images,imageIds))
+                yield(batchNumber,(inputs,labels.squeeze(1),images,imageIds.squeeze(1)))
                 runningInputs = []
                 runningLabels = []
                 runningImages = []
