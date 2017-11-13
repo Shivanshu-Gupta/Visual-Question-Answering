@@ -112,22 +112,23 @@ class VQADataSet(torch.utils.data.Dataset):
                 self.ind.sort(key = lambda x: len(self.intData[x][0]))
                 N = len(self.ind)
                 if N > 10:
-                    self.block_ids = [0]*N
+                    self.block_ids = {}
                     random_block_ids = list(range(N))
                     np.random.shuffle(random_block_ids)
                     #generate a random number between 0 to N - 1
                     blockid = random_block_ids[0]
-                    self.block_ids[0] = blockid
+                    self.block_ids[self.ind[0]] = blockid
                     running_count = 1
                     for ind_it in range(1,N):
-                        if running_count >= self.batch_size or len(self.intData[self.ind[ind_it]]) != len(self.intData[self.ind[ind_it-1]]):
+                        if running_count >= self.batch_size or len(self.intData[self.ind[ind_it]][0]) != len(self.intData[self.ind[ind_it-1]][0]):
                             blockid = random_block_ids[ind_it]
                             running_count = 0
                         #
-                        self.block_ids[ind_it] = blockid
+                        self.block_ids[self.ind[ind_it]] = blockid
                         running_count += 1
                     #
-                    self.ind  = [x for _,x in sorted(zip(self.block_ids,self.ind))]
+                    self.ind.sort(key = lambda x: self.block_ids[x])
+                    #self.ind  = [x for _,x in sorted(zip(self.block_ids,self.ind))]
                     #self.ind.sort(key= lambda x: self.block_ids[x])
 
                 #generate
