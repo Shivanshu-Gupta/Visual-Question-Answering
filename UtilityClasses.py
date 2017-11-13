@@ -162,7 +162,7 @@ def customVQADataBatcher(loader,batchSize=1):
     runningImageIds = []
 
     runningSize = -1
-    Pdb().set_trace()
+    #Pdb().set_trace()
     end = time.time()
     totalTime = 0
     #for i,(si,sl,im,imid) in enumerate(loader,0):
@@ -172,8 +172,10 @@ def customVQADataBatcher(loader,batchSize=1):
         for k,(si,sl,im,imid) in enumerate(zip(*data),0):
             i = j*128+k
             totalTime += time.time() - end
-            ts = si.size()[1]
+            si = unpad(si)
+            ts = si.size(0)
             if (len(runningInputs) != 0) and ((ts != runningSize) or len(runningInputs) == batchSize):
+                # Pdb().set_trace()
                 print("Total time = %f, i=%d, batch_num=%d"%(totalTime,i,batchNumber))
                 inputs = torch.cat(runningInputs,0)
                 labels = torch.cat(runningLabels,0)
@@ -186,11 +188,24 @@ def customVQADataBatcher(loader,batchSize=1):
                 runningImages = []
                 runningImageIds = []
             #
+            # Pdb().set_trace()
             runningSize = ts
-            runningInputs.append(si)
-            runningLabels.append(sl)
-            runningImages.append(im)
-            runningImageIds.append(imid)
+            runningInputs.append(si.unsqueeze(0))
+            runningLabels.append(torch.LongTensor([sl]).unsqueeze(0))
+            runningImages.append(im.unsqueeze(0))
+            runningImageIds.append(torch.LongTensor([imid]).unsqueeze(0))
+
+PAD_TOKEN=-1
+def pad(question,length):
+    q_pad = np.full((length),PAD_TOKEN)
+    q_pad[:len(question)] = question
+    return list(q_pad)
+
+def unpad(question):
+    # assumes quesition is a LongTensor object
+    #question = np.array(question)
+    q_unpad = question[question != PAD_TOKEN]
+    return q_unpad
 
 def customSentenceBatcher(loader,batchSize=1):
     batchNumber = -1

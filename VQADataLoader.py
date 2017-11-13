@@ -1,4 +1,4 @@
-#References - 
+#References -
 #http://pytorch.org/tutorials/beginner/data_loading_tutorial.html
 from __future__ import print_function, division
 import os
@@ -43,7 +43,7 @@ class VQADataSet(torch.utils.data.Dataset):
         annfnT = os.path.join(rootDir,'v2_mscoco_train2014_annotations.json')
         imgfnT = os.path.join(rootDir,'train2014/COCO_train2014_')
 
-        quesfnV = os.path.join(rootDir,'v2_OpenEnded_mscoco_val2014_questions.json')#FIXME @keshav: Must fill in
+        quesfnV = os.path.join(rootDir,'v2_OpenEnded_mscoco_val2014_questions.json')
         annfnV = os.path.join(rootDir,'v2_mscoco_val2014_annotations.json')
         imgfnV = os.path.join(rootDir,'val2014/COCO_val2014_')
 
@@ -71,8 +71,8 @@ class VQADataSet(torch.utils.data.Dataset):
             #load train or validation set
             if(
             (not os.path.exists(os.path.join(rootDir,'ques_vocab.pkl'))) or
-            (not os.path.exists(os.path.join(rootDir,'ques_rev_vocab.pkl'))) or 
-            (not os.path.exists(os.path.join(rootDir,'ans_vocab_'+str(self.max_answers)+'.pkl'))) or 
+            (not os.path.exists(os.path.join(rootDir,'ques_rev_vocab.pkl'))) or
+            (not os.path.exists(os.path.join(rootDir,'ans_vocab_'+str(self.max_answers)+'.pkl'))) or
             (not os.path.exists(os.path.join(rootDir,'ans_rev_vocab_'+str(self.max_answers)+'.pkl')))
              ):
                 training_data = self.getQuestionAnswerPairs(quesfnT, annfnT)
@@ -134,7 +134,7 @@ class VQADataSet(torch.utils.data.Dataset):
         #
         # self.ix_to_tag = dict([[v,k] for k,v in self.tag_to_ix.items()])
         #Pdb().set_trace()
-         
+
 
     def populateIntData(self,qfn):
         basedir = os.path.dirname(qfn)
@@ -146,8 +146,15 @@ class VQADataSet(torch.utils.data.Dataset):
             return
         #
         self.intData = []
+        max_qlen = -1
         for it_data,qa_pair in enumerate(self.data):
-            q1 = self.prepare_sequence(qa_pair['question'],VQADataSet.qwtoi)
+            i_qlen = len(qa_pair['question'])
+            if(i_qlen > max_qlen):
+                max_qlen = i_qlen
+
+        #Pdb().set_trace()
+        for it_data,qa_pair in enumerate(self.data):
+            q1 = self.prepare_sequence(qa_pair['question'],VQADataSet.qwtoi,max_qlen)
             a1 = VQADataSet.atoi.get(qa_pair['answer'],VQADataSet.atoi['UNK'])
             img_id = qa_pair['image_id']
             self.intData.append((q1,a1,img_id))
@@ -157,7 +164,7 @@ class VQADataSet(torch.utils.data.Dataset):
 
     def populateVocabsFromFile(self):
         if VQADataSet.qwtoi is None:
-            VQADataSet.qwtoi = pickle.load(open(os.path.join(self.rootDir,'ques_vocab.pkl'))) 
+            VQADataSet.qwtoi = pickle.load(open(os.path.join(self.rootDir,'ques_vocab.pkl')))
             VQADataSet.qitow = pickle.load(open(os.path.join(self.rootDir,'ques_rev_vocab.pkl')))
             VQADataSet.atoi = pickle.load(open(os.path.join(self.rootDir,'ans_vocab_'+str(self.max_answers)+'.pkl')))
             VQADataSet.itoa = pickle.load(open(os.path.join(self.rootDir,'ans_rev_vocab_'+str(self.max_answers)+'.pkl')))
@@ -170,7 +177,7 @@ class VQADataSet(torch.utils.data.Dataset):
         VQADataSet.qwtoi['UNK'], VQADataSet.atoi['UNK'] = len(VQADataSet.qwtoi), len(VQADataSet.atoi)
         VQADataSet.qitow[0], VQADataSet.itoa[0] = 'UNK', 'UNK'
         #
-        #answerFreq = {} 
+        #answerFreq = {}
         #Pdb().set_trace()
         answerFreq = Counter(map(lambda x: x['answer'], data))
         mostFreq = dict(answerFreq.most_common(self.max_answers))
@@ -196,8 +203,9 @@ class VQADataSet(torch.utils.data.Dataset):
         pickle.dump(VQADataSet.itoa,open(os.path.join(self.rootDir,'ans_rev_vocab_'+str(self.max_answers)+'.pkl'),'w'))
 
 
-    def prepare_sequence(self,seq, to_ix):
+    def prepare_sequence(self,seq, to_ix,max_qlen):
         idxs = [to_ix.get(w,to_ix['UNK']) for w in seq]
+        idxs = uc.pad(idxs,max_qlen)
         tensor = torch.LongTensor(idxs)
         return tensor
         #return autograd.Variable(tensor)
@@ -218,7 +226,7 @@ class VQADataSet(torch.utils.data.Dataset):
         af = json.load(open(afn))
 
         quess = qf['questions']
-        anns = af['annotations'] 
+        anns = af['annotations']
         qas = []
         for i,ques in enumerate(quess):
             if(self.debug == True and i > 100):
@@ -242,7 +250,7 @@ class VQADataSet(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         #Pdb().set_trace()
-        question, answer, image_id = self.intData[self.ind[idx]]        
+        question, answer, image_id = self.intData[self.ind[idx]]
 
         if self.features_dir is None:
             #img = Image.open(os.path.join(self.idir,"COCO_train2014_"+("%012d"%image_id)+'.jpg'))
