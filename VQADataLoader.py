@@ -102,14 +102,14 @@ class VQADataSet(torch.utils.data.Dataset):
         self.populateIntData(qfn)
         #
         #random shuffle and sort by length of the string
-        self.ind = np.arange(0,len(self.intData))
+        self.ind = np.arange(0,len(self.data))
         if(train):
             #Pdb().set_trace()
             np.random.seed(1)
             np.random.shuffle(self.ind)
             self.ind = list(self.ind)
             if self.batch_size > 1:
-                self.ind.sort(key = lambda x: len(self.intData[x][0]))
+                self.ind.sort(key = lambda x: len(self.data[x]['question']))
                 N = len(self.ind)
                 if N > 10:
                     self.block_ids = {}
@@ -120,7 +120,7 @@ class VQADataSet(torch.utils.data.Dataset):
                     self.block_ids[self.ind[0]] = blockid
                     running_count = 1
                     for ind_it in range(1,N):
-                        if running_count >= self.batch_size or len(self.intData[self.ind[ind_it]][0]) != len(self.intData[self.ind[ind_it-1]][0]):
+                        if running_count >= self.batch_size or len(self.data[self.ind[ind_it]]['question']) != len(self.data[self.ind[ind_it-1]]['question']):
                             blockid = random_block_ids[ind_it]
                             running_count = 0
                         #
@@ -218,10 +218,10 @@ class VQADataSet(torch.utils.data.Dataset):
         basename_afn = os.path.basename(afn)
         pickle_path = os.path.join(basedir,basename_qfn+'.pkl')
         if os.path.exists(pickle_path):
-            print('unpickle qan.. actually.. chuck it. i dont need self.data ..')
-            return None
-            #qas = pickle.load(open(pickle_path))
-            #return qas
+            #print('unpickle qan.. actually.. chuck it. i dont need self.data ..')
+            #return None
+            qas = pickle.load(open(pickle_path))
+            return qas
         #
         qf = json.load(open(qfn))
         af = json.load(open(afn))
