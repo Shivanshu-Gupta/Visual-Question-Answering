@@ -384,7 +384,7 @@ def main(config,mode,onlyTest = False):
     elif config['model']['model_class'] == 'san':
         net = san.SANModel(**config['model']['params'])
 
-    criterion = nn.NLLLoss()
+    criterion = nn.CrossEntropyLoss()
 
     if(config['optim']['class'].lower() == 'sgd'):
         optimizer = optim.SGD(filter(lambda p: p.requires_grad, net.parameters()),**config['optim']['params'])
