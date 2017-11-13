@@ -3,6 +3,7 @@ import numpy as np
 #import ImageNetMiniDataLoader as inmd
 import torch
 from IPython.core.debugger import Tracer
+from IPython.core.debugger import Pdb
 
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset, DataLoader
@@ -11,6 +12,7 @@ from torch.optim import lr_scheduler
 import VQADataLoader as vqad
 #import POSDataLoader as posd
 import string, re
+import time
 
 re_for_spaces_around_puct = re.compile('([.,!?()])')
 
@@ -36,7 +38,7 @@ def getVQATrainAndValidationLoader(config):
     scale_param = tuple(config['data']['scale_params'])
     #
     transform = transforms.Compose(
-            [transforms.Scale(scale_param), 
+            [transforms.Scale(scale_param),
             transforms.CenterCrop(crop_param),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -48,7 +50,7 @@ def getVQATrainAndValidationLoader(config):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225])
-            ]) 
+            ])
 
     dataPath = os.path.join(os.getcwd(),config['data']['path'])
     if(config['mode']=='write_features'):
@@ -57,13 +59,13 @@ def getVQATrainAndValidationLoader(config):
         fdir = config['data']['features_dir']
     trainset = vqad.VQADataSet(rootDir=dataPath, train=True,
                                       transforms=transform,model_class=config['model_class'],debug = config['debug'],batch_size = config['data']['custom_batch_size'],features_dir=fdir)
-    # 
-    validset = vqad.VQADataSet(rootDir=dataPath, validation=True, 
+    #
+    validset = vqad.VQADataSet(rootDir=dataPath, validation=True,
                  transforms=validationTransforms,model_class = config['model_class'],debug = config['debug'],features_dir=fdir)
     #
     numTrain = len(trainset)
     indices = list(range(numTrain))
-    # 
+    #
     #if config['data']['shuffle'] == True:
     #    np.random.seed(config['data']['random_seed'])
     #    np.random.shuffle(indices)
@@ -78,13 +80,13 @@ def getVQATrainAndValidationLoader(config):
 
 def getVQATestLoader(config):
     transform = transforms.Compose(
-            [transforms.Scale((256,256)), 
+            [transforms.Scale((256,256)),
             transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225])
             ])
-   
+
     dataPath = os.path.join(os.getcwd(),config['data']['path'])
 
     qfn = config['data']['questions_path']
@@ -93,7 +95,7 @@ def getVQATestLoader(config):
     testset = vqad.VQADataSet(rootDir=dataPath,questionFileName=qfn, annotationFileName=afn,imageDir=imageDir,model_class=config['model_class'], transforms=transform,debug = config['debug'])
     testloader = torch.utils.data.DataLoader(testset,**config['data']['loader_params'])
     return testloader
-"""
+
 def getTrainAndValidationLoaderCifar10(config):
     transform = transforms.Compose(
             [transforms.ToTensor(),
@@ -104,15 +106,15 @@ def getTrainAndValidationLoaderCifar10(config):
     dataPath = os.path.join(os.getcwd(),config['data']['path'])
     trainset = torchvision.datasets.CIFAR10(root=dataPath, train=True,
                                         download=True, transform=transform)
-    
+
     # load the dataset
     #having it seperate because transormations could be different, for now they are same
-    validset = torchvision.datasets.CIFAR10(root=dataPath, train=True, 
+    validset = torchvision.datasets.CIFAR10(root=dataPath, train=True,
                 download=True, transform=transform)
     numTrain = len(trainset)
     indices = list(range(numTrain))
     split = int(np.floor(config['data']['validation_ratio']* numTrain))
-    # 
+    #
     if config['data']['shuffle'] == True:
         np.random.seed(config['data']['random_seed'])
         np.random.shuffle(indices)
@@ -140,7 +142,7 @@ def getPOSDataLoader(config):
     validSet = posd.POSDataSet(dataPath,train=False,validation=True)
     numTrain = len(trainSet)
     #indices = list(range(numTrain))
-    # 
+    #
     #if config['data']['shuffle'] == True:
     #    np.random.seed(config['data']['random_seed'])
     #    np.random.shuffle(indices)
@@ -150,36 +152,45 @@ def getPOSDataLoader(config):
     trainloader = torch.utils.data.DataLoader(trainSet, **config['data']['loader_params'])
     validloader = torch.utils.data.DataLoader(validSet,**config['data']['loader_params'])
     return(trainloader,validloader)
-"""
 
 def customVQADataBatcher(loader,batchSize=1):
     batchNumber = -1
-    
+
     runningInputs = []
     runningLabels = []
     runningImages = []
     runningImageIds = []
 
     runningSize = -1
-    for i,(si,sl,im,imid) in enumerate(loader,0):
-        ts = si.size()[1]
-        if (len(runningInputs) != 0) and ((ts != runningSize) or len(runningInputs) == batchSize):
-            inputs = torch.cat(runningInputs,0)
-            labels = torch.cat(runningLabels,0)
-            images = torch.cat(runningImages,0)
-            imageIds = torch.cat(runningImageIds,0)
-            batchNumber += 1
-            yield(batchNumber,(inputs,labels,images,imageIds))
-            runningInputs = []
-            runningLabels = []
-            runningImages = []
-            runningImageIds = []
-        #
-        runningSize = ts
-        runningInputs.append(si)
-        runningLabels.append(sl)
-        runningImages.append(im)
-        runningImageIds.append(imid)
+    Pdb().set_trace()
+    end = time.time()
+    totalTime = 0
+    #for i,(si,sl,im,imid) in enumerate(loader,0):
+    for j, data in enumerate(loader,0):
+        # * unpacks the list and sends it to the zip
+        # which concatenates same index elements in differet lists, data[0],data[1],..
+        for k,(si,sl,im,imid) in enumerate(zip(*data),0):
+            i = j*128+k
+            totalTime += time.time() - end
+            ts = si.size()[1]
+            if (len(runningInputs) != 0) and ((ts != runningSize) or len(runningInputs) == batchSize):
+                print("Total time = %f, i=%d, batch_num=%d"%(totalTime,i,batchNumber))
+                inputs = torch.cat(runningInputs,0)
+                labels = torch.cat(runningLabels,0)
+                images = torch.cat(runningImages,0)
+                imageIds = torch.cat(runningImageIds,0)
+                batchNumber += 1
+                yield(batchNumber,(inputs,labels,images,imageIds))
+                runningInputs = []
+                runningLabels = []
+                runningImages = []
+                runningImageIds = []
+            #
+            runningSize = ts
+            runningInputs.append(si)
+            runningLabels.append(sl)
+            runningImages.append(im)
+            runningImageIds.append(imid)
 
 def customSentenceBatcher(loader,batchSize=1):
     batchNumber = -1
@@ -200,11 +211,11 @@ def customSentenceBatcher(loader,batchSize=1):
         runningInputs.append(si)
         runningLabels.append(sl)
 
-        
-"""         
+
+"""
 def getTrainAndValidationLoaderImagenetMini(config):
     transform = transforms.Compose(
-            [transforms.Scale((256,256)), 
+            [transforms.Scale((256,256)),
             transforms.RandomCrop(227),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
@@ -217,17 +228,17 @@ def getTrainAndValidationLoaderImagenetMini(config):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225])
-            ]) 
+            ])
 
     dataPath = os.path.join(os.getcwd(),config['data']['path'])
     trainset = inmd.ImagenetMiniDataSet(rootDir=dataPath, train=True,
                                       transform=transform)
-    # 
-    validset = inmd.ImagenetMiniDataSet(rootDir=dataPath, validation=True, 
+    #
+    validset = inmd.ImagenetMiniDataSet(rootDir=dataPath, validation=True,
                  transform=validationTransforms)
     numTrain = len(trainset)
     indices = list(range(numTrain))
-    # 
+    #
     if config['data']['shuffle'] == True:
         np.random.seed(config['data']['random_seed'])
         np.random.shuffle(indices)
@@ -244,7 +255,7 @@ def getTestLoaderImagenetMini(config):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225])
-            ]) 
+            ])
 
     dataPath = os.path.join(os.getcwd(),config['data']['path'])
     deepDir = True
@@ -257,7 +268,7 @@ def getTestLoaderImagenetMini(config):
 
 """
 def augmentTestBatchImagenetmini(inputs):
-    i5 = inputs[:,:,14:14+227,14:14+227] 
+    i5 = inputs[:,:,14:14+227,14:14+227]
     i1 = inputs[:,:,0:227,0:227]
     i2 = inputs[:,:,29:256,29:256]
     i3 = inputs[:,:,0:227,29:256]
@@ -302,11 +313,11 @@ class EWMA():
         if (self.memory != 1):
             factor =  (1 - memoryToPowerN)/(1 - self.memory)
             self.memoryToPowerCount = self.memoryToPowerCount*memoryToPowerN
-            self.normalizingFactor = (1 - self.memoryToPowerCount)/(1 - self.memory) 
+            self.normalizingFactor = (1 - self.memoryToPowerCount)/(1 - self.memory)
         else:
             self.normalizingFactor = self.count
             factor = n
-        
+
         #
         self.sum = (memoryToPowerN)*self.sum + self.x*factor
         self.avg = self.sum/self.normalizingFactor
@@ -340,9 +351,9 @@ class CustomReduceLROnPlateau(lr_scheduler.ReduceLROnPlateau):
             self.unconstrainedBadEpochs += 1
         #
         super(CustomReduceLROnPlateau,self).step(metrics,epoch)
-        
+
 
     def shouldStopTraining(self):
         self.currentThreshold = self.getThresholdFn(self.best)
-        print("Num_bad_epochs: {0}, unconstrainedBadEpochs: {1}, bestMetric: {2}, currentThreshold: {3}".format(self.num_bad_epochs, self.unconstrainedBadEpochs, self.best,self.currentThreshold)) 
+        print("Num_bad_epochs: {0}, unconstrainedBadEpochs: {1}, bestMetric: {2}, currentThreshold: {3}".format(self.num_bad_epochs, self.unconstrainedBadEpochs, self.best,self.currentThreshold))
         return(self.unconstrainedBadEpochs > self.maxPatienceToStopTraining)

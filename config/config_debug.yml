@@ -1,7 +1,7 @@
-prefix: vqa_slr
+prefix: vqa_debug
 verbose: True
 mode: 'train'
-save_dir: '~/Visual-Question-Answering/outputs'
+save_dir: 'outputs'
 use_gpu: True
 model_class: vqa
 debug: False
@@ -16,7 +16,7 @@ data:
     scale_params: [256,256]
     crop_params: 228
     loader_params: 
-        batch_size: 1
+        batch_size: 128
         num_workers: 4
         pin_memory: True
 

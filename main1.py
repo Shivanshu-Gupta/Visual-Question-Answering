@@ -349,7 +349,7 @@ import vqa
 import san
 
 import main1 as m
-config = yaml.load(open('config/config3.yml'))
+config = yaml.load(open('config/config_debug.yml'))
 m.enhance_config(config)
 
 

@@ -107,3 +107,4 @@ venv.bak/
 
 sftp-config.json
 outputs/
+*.sh.*
