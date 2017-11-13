@@ -60,7 +60,7 @@ def accuracy(answer_scores,labels,topk = (1,),dataloader=None,writeToFile=False,
     #Pdb().set_trace()
     _, pred = answer_scores.topk(maxk)
     pred = pred.view(-1,maxk).t()
-    if (pred == 0).sum() == 1:
+    if (pred == 0).sum() >= 1: # why == 1? 
         _, tpred = answer_scores.topk(maxk+1)
         tpred = tpred.view(-1,maxk+1).t()
         # pred: maxk * examples
@@ -76,7 +76,8 @@ def accuracy(answer_scores,labels,topk = (1,),dataloader=None,writeToFile=False,
         res.append(correct_k.mul_(1.0 / (batchSize)))
     #
     if dataloader is not None and batchSize == 1:
-        print('{0},{1}'.format(dataloader.dataset.itoa[pred[0]], dataloader.dataset.itoa[labels[0]]),file=fh)
+        # added another 0 index while accessing pred[0]
+        print('{0},{1}'.format(dataloader.dataset.itoa[pred[0][0]], dataloader.dataset.itoa[labels[0][0]]),file=fh)
     #
     return res
 
@@ -186,6 +187,7 @@ def getLearningRate(optimizer):
 
 def train(config,trainloader,net,criterion,optimizer,epoch):
     net.train()
+    trainloader.dataset.randomize()
     #Pdb().set_trace()
     asyncVar = config['data']['loader_params'].has_key('pin_memory') and config['data']['loader_params']['pin_memory']
     dataLoadingTime = uc.EWMA(1)
