@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "main1.py", line 468, in <module>
+    jobManager()
+  File "main1.py", line 284, in jobManager
+    main(config,'train')
+  File "main1.py", line 380, in main
+    net = san.SANModel(**config['model']['params'])
+TypeError: __init__() got an unexpected keyword argument 'mode'

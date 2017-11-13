@@ -1,4 +1,4 @@
-prefix: vqa_clip
+prefix: vqa_slr
 verbose: True
 mode: 'train'
 save_dir: '/home/cse/phd/csz178058/Visual-Question-Answering/outputs'
@@ -48,7 +48,7 @@ optim:
 
     params: 
         momentum: 0.9
-        lr: 0.05
+        lr: 0.0004
         weight_decay: 0.0005 
     clip: 0.1
 

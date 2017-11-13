@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "main1.py", line 468, in <module>
+    jobManager()
+  File "main1.py", line 282, in jobManager
+    main(config,'write_features')
+  File "main1.py", line 419, in main
+    save_image_features(config,validationloader,net)
+  File "main1.py", line 111, in save_image_features
+    outputs = net(images,inputs,image_ids)
+  File "/home/cse/phd/csz178058/miniconda3/envs/pytorch/lib/python2.7/site-packages/torch/nn/modules/module.py", line 224, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/home/cse/phd/csz178058/Visual-Question-Answering/san.py", line 98, in forward
+    uc.save_image_features(image_embeddings,image_ids,self.features_dir)
+  File "/home/cse/phd/csz178058/Visual-Question-Answering/UtilityClasses.py", line 30, in save_image_features
+    torch.save(thisFeature.cpu(),fileName)
+  File "/home/cse/phd/csz178058/miniconda3/envs/pytorch/lib/python2.7/site-packages/torch/serialization.py", line 118, in save
+    f = open(f, "wb")
+IOError: [Errno 13] Permission denied: '/home/cse/phd/csz178058/scratch/vqadata/train2014_san_i_1024_448/262148'

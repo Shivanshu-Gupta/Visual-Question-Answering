@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "main.py", line 6, in <module>
+    from torchtext import data
+ImportError: No module named torchtext

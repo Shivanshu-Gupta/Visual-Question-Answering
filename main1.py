@@ -76,7 +76,7 @@ def accuracy(answer_scores,labels,topk = (1,),dataloader=None,writeToFile=False,
         res.append(correct_k.mul_(1.0 / (batchSize)))
     #
     if dataloader is not None and batchSize == 1:
-        print(' '.join([dataloader.dataset.itoa[x] for x in pred[0,:]]),file=fh)
+        print('{0},{1}'.format(dataloader.dataset.itoa[pred[0]], dataloader.dataset.itoa[labels[0]]),file=fh)
     #
     return res
 
@@ -107,9 +107,9 @@ def save_image_features(config,dataloader,net):
                 inputs,labels = inputs.cuda(), labels.cuda(async=asyncVar)
                 images = images.cuda()
                 image_ids=  image_ids.cuda()
-        
+
             outputs = net(images,inputs,image_ids)
-            
+
 
 
 def validate(config,dataloader,net,criterion,optimizer,epoch,whichSet,whichModel):
@@ -137,8 +137,8 @@ def validate(config,dataloader,net,criterion,optimizer,epoch,whichSet,whichModel
         if(config['debug'] == True and i>10):
             break
     #for i, (inputs, labels) in enumerate(dataloader, 0):
-        dataLoadingTime.update(time.time() - end) 
-         
+        dataLoadingTime.update(time.time() - end)
+
         if torch.cuda.is_available():
             inputs,labels = inputs.cuda(), labels.cuda(async=asyncVar)
             images = images.cuda()
@@ -182,7 +182,7 @@ def getLearningRate(optimizer):
         return param_group['lr']
 
 
-    
+
 
 def train(config,trainloader,net,criterion,optimizer,epoch):
     net.train()
@@ -202,7 +202,7 @@ def train(config,trainloader,net,criterion,optimizer,epoch):
     #inputs refers to questions, labels refers to gt answers
     #for i,(inputs,labels) in uc.customSentenceBatcher(trainloader,config['data']['custom_batch_size']):
         # get the inputs
-        dataLoadingTime.update(time.time() - end) 
+        dataLoadingTime.update(time.time() - end)
         batchSize = labels.size()[0]
         #nwords = labels.size()[1]
         nsentences += batchSize
@@ -222,17 +222,22 @@ def train(config,trainloader,net,criterion,optimizer,epoch):
         losses.update(loss.data[0], batchSize)
         top1.update(prec1[0], batchSize)
         top5.update(prec5[0], batchSize)
-        
+
         #compute gradient and do SGD step
         optimizer.zero_grad()
         loss.backward()
+
+        #Gradient Clipping
+        if config['optim'].has_key('clip'):
+            torch.nn.utils.clip_grad_norm(net.parameters(), config['optim']['clip'])
+
         optimizer.step()
         trainingTime.update(time.time() - end)
         end = time.time()
         dtstr = str(dt.now())
         if config.has_key('verbose') and config['verbose'] and i%100 == 0:
             print("{0},{1},{2},{3},{4},{5:.3f},{6:.3f},{7:.3f},{8},{9}".format(dtstr,epoch, trainingTime.count,nsentences,top1.count, top1.avg, top5.avg, losses.avg, trainingTime.sum,config['model_name'] ))
-        
+
         #if(i == 10):
         #    break
     #
@@ -264,8 +269,8 @@ def getLearningRate(optimizer):
 
 
 def jobManager():
-    #3 modes - 
-        # train 1 model whose configuration is specified in the given config file 
+    #3 modes -
+        # train 1 model whose configuration is specified in the given config file
         # test 1 model whose configuration is specified in the given config file
         # test bulk models - test all models specified in the given config file. All models are specified with their respective config files and an optional path to best model
     global args
@@ -288,16 +293,16 @@ def jobManager():
         bulkTest(config)
     else:
         print("Incorrect mode. Expected train, test or bulk_test")
-        
+
     print("Job Manager Finished")
- 
+
 def bulkTest(config):
     outputFilePath = config['stats']['accuracyLogs']
     for model in config['testing']['models']:
         thisConfigPath = model['config_path']
         thisModelPath = model['path']
         thisModelName = model['model_name']
-        
+
         thisConfig  = yaml.load(open(thisConfigPath))
         thisConfig['stats']['accuracyLogs'] = outputFilePath
         thisConfig['checkpoints']['best_model_path'] = thisModelPath
@@ -365,7 +370,7 @@ def main(config,mode,onlyTest = False):
         #testloader = uc.getVQATestLoader(config)
         vocab_size = trainloader.dataset.q_vocab_size
         output_size = trainloader.dataset.a_vocab_size
-         
+
     else:
         testloader = uc.getPOSDataLoaderFromFile(config)
         vocab_size = testloader.dataset.q_vocab_size
@@ -378,14 +383,14 @@ def main(config,mode,onlyTest = False):
         net = vqa.VQAModel(**config['model']['params'])
     elif config['model']['model_class'] == 'san':
         net = san.SANModel(**config['model']['params'])
-    
+
     criterion = nn.NLLLoss()
 
     if(config['optim']['class'].lower() == 'sgd'):
         optimizer = optim.SGD(filter(lambda p: p.requires_grad, net.parameters()),**config['optim']['params'])
     else:
         optimizer = optim.Adam(filter(lambda p: p.requires_grad, net.parameters()),**config['optim']['params'])
-    
+
     if(use_gpu):
         print("Cuda is True.....converting model and loss fn to .cuda")
         net = net.cuda()
@@ -394,12 +399,12 @@ def main(config,mode,onlyTest = False):
     startEpoch = 0
     bestPrec1 = 0
     bestError = 1
-    
+
     pathForTrainedModel = config['checkpoints']['path']
-    
+
     if (mode == 'test'):
         pathForTrainedModel = config['checkpoints']['best_model_path']
-    
+
     if ((config['training']['start_from_checkpoint']) or (mode == 'test')):
         if os.path.exists(pathForTrainedModel):
             print("=> loading checkpoint/model found at '{0}'".format(pathForTrainedModel))
@@ -413,7 +418,7 @@ def main(config,mode,onlyTest = False):
             if mode == 'test':
                 print(" = > Error: could not find any model at the given path. Quitting...")
                 return
-   
+
     if mode == 'write_features':
         #save_image_features(config,trainloader,net)
         save_image_features(config,validationloader,net)
@@ -421,7 +426,7 @@ def main(config,mode,onlyTest = False):
 
     if mode == 'test':
         epoch = startEpoch - 1
-        testLoss,testPrec1 = validate(config,testloader, net, criterion, optimizer,epoch,'testSet',config['model_name'])  
+        testLoss,testPrec1 = validate(config,testloader, net, criterion, optimizer,epoch,'testSet',config['model_name'])
         if onlyTest:
             return
         validLoss,validPrec1 = validate(config,validationloader, net, criterion,optimizer,epoch,'validationSet',config['model_name'])
@@ -434,8 +439,8 @@ def main(config,mode,onlyTest = False):
     scheduler = uc.CustomReduceLROnPlateau(optimizer,config['optim']['scheduler_params']['maxPatienceToStopTraining'], config['optim']['scheduler_params']['base_class_params'])
 
     print("Start from epoch#:",startEpoch)
-    
-    
+
+
     for epoch in range(startEpoch, config['training']['no_of_epochs']):
         #adjustLearningRate(config,optimizer,epoch)
         train(config, trainloader, net, criterion, optimizer, epoch)

@@ -108,14 +108,16 @@ class VQAModel(nn.Module):
             fileName = os.path.join(features_dir,str(thisImageId))
             if(not os.path.exists(fileName)):
                 torch.save(thisFeature.cpu(),fileName)
-    """     
-        
+    """
+
     def forward(self, images, questions, image_ids = None):
         #Pdb().set_trace()
         if self.mode == 'write_features':
             image_embeddings = self.image_channel(images)
             uc.save_image_features(image_embeddings,image_ids,self.features_dir)
             return 0
+        if self.mode == 'test':
+            image_embeddings = self.image_channel(images)
         else:
             image_embeddings = images
         #
