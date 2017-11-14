@@ -25,6 +25,7 @@ class VQADataSet(torch.utils.data.Dataset):
     atoi = None
     itoa = None
 
+
     def __init__(self,rootDir,train=False, validation=False,questionFileName=None,annotationFileName=None, imageDir=None, model_class=None, transforms=None, debug=False,max_answers=1000,batch_size = 1,features_dir=None):
         #Tracer()()
         self.features_dir = features_dir
@@ -47,7 +48,7 @@ class VQADataSet(torch.utils.data.Dataset):
         annfnV = os.path.join(rootDir,'v2_mscoco_val2014_annotations.json')
         imgfnV = os.path.join(rootDir,'val2014/COCO_val2014_')
 
-
+        self.train = train
         if train:
             qfn = quesfnT
             afn = annfnT
@@ -100,41 +101,42 @@ class VQADataSet(torch.utils.data.Dataset):
         self.a_vocab_size = len(VQADataSet.atoi)
         self.intData = []
         self.populateIntData(qfn)
+        self.ind = np.arange(0,len(self.data))
+        np.random.shuffle(self.ind)
+        self.ind = list(self.ind)
+        self.ind.sort(key = lambda x: len(self.data[x]['question']))
+        if train:
+            self.randomize()
         #
         #random shuffle and sort by length of the string
-        self.ind = np.arange(0,len(self.data))
-        if(train):
-            #Pdb().set_trace()
-            np.random.seed(1)
-            np.random.shuffle(self.ind)
-            self.ind = list(self.ind)
-            if self.batch_size > 1:
-                self.ind.sort(key = lambda x: len(self.data[x]['question']))
-                N = len(self.ind)
-                if N > 10:
-                    self.block_ids = {}
-                    random_block_ids = list(range(N))
-                    np.random.shuffle(random_block_ids)
-                    #generate a random number between 0 to N - 1
-                    blockid = random_block_ids[0]
-                    self.block_ids[self.ind[0]] = blockid
-                    running_count = 1
-                    for ind_it in range(1,N):
-                        if running_count >= self.batch_size or len(self.data[self.ind[ind_it]]['question']) != len(self.data[self.ind[ind_it-1]]['question']):
-                            blockid = random_block_ids[ind_it]
-                            running_count = 0
-                        #
-                        self.block_ids[self.ind[ind_it]] = blockid
-                        running_count += 1
-                    #
-                    self.ind.sort(key = lambda x: self.block_ids[x])
-                    #self.ind  = [x for _,x in sorted(zip(self.block_ids,self.ind))]
-                    #self.ind.sort(key= lambda x: self.block_ids[x])
 
                 #generate
         #
         # self.ix_to_tag = dict([[v,k] for k,v in self.tag_to_ix.items()])
         #Pdb().set_trace()
+
+    def randomize(self):
+        if self.batch_size > 1:
+            N = len(self.ind)
+            if N > 10:
+                self.block_ids = {}
+                random_block_ids = list(range(N))
+                np.random.shuffle(random_block_ids)
+                #generate a random number between 0 to N - 1
+                blockid = random_block_ids[0]
+                self.block_ids[self.ind[0]] = blockid
+                running_count = 1
+                for ind_it in range(1,N):
+                    if running_count >= self.batch_size or len(self.data[self.ind[ind_it]]['question']) != len(self.data[self.ind[ind_it-1]]['question']):
+                        blockid = random_block_ids[ind_it]
+                        running_count = 0
+                    #
+                    self.block_ids[self.ind[ind_it]] = blockid
+                    running_count += 1
+                #
+                self.ind.sort(key = lambda x: self.block_ids[x])
+                #self.ind  = [x for _,x in sorted(zip(self.block_ids,self.ind))]
+        #self.ind.sort(key= lambda x: self.block_ids[x])
 
 
     def populateIntData(self,qfn):
