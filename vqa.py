@@ -12,7 +12,8 @@ class Normalize(nn.Module):
             self.p = p
 
         def forward(self, x):
-            x /= x.norm(p=self.p, dim=1, keepdim=True)
+            #Pdb().set_trace()
+            x = x/x.norm(p=self.p, dim=1, keepdim=True)
             return x
 
 
@@ -86,10 +87,14 @@ class VQAModel(nn.Module):
         # NOTE the padding_idx below.
         self.word_embeddings = nn.Embedding(vocab_size, word_emb_size)
         #self.word_embeddings = nn.Embedding(vocab_size, word_emb_size, padding_idx=1)
-        if ques_channel_type == 'LSTM':
+        if ques_channel_type.lower() == 'lstm':
             self.ques_channel = QuesEmbedding(input_size=word_emb_size, output_size=emb_size, num_layers=1, batch_first=False)
-        else:
+        elif ques_channel_type.lower() == 'deeplstm':
             self.ques_channel = QuesEmbedding(input_size=word_emb_size, output_size=emb_size, num_layers=2, batch_first=False)
+        else:
+            msg = 'ques channel type not specified. please choose one of -  lstm or deeplstm'
+            print(msg)
+            raise Exception(msg)
 
         self.mlp = nn.Sequential(
             nn.Linear(emb_size, 1000),
