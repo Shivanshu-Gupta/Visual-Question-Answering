@@ -1,22 +1,22 @@
-prefix: vqa_debug
+prefix: san_sgd
 verbose: True
 mode: 'train'
-save_dir: 'outputs'
+save_dir: '/home/cse/phd/csz178058/Visual-Question-Answering/outputs'
 use_gpu: True
-model_class: vqa
-debug: True
+model_class: san
+debug: False
 data:
     path: '/home/cse/phd/csz178058/scratch/vqadata/'
     random_seed: 1
     #shuffle: False
     questions_path: 'v2_OpenEnded_mscoco_val2014_questions.json'
     annotation_path: 'v2_mscoco_val2014_annotations.json'
-    custom_batch_size: 128
-    features_dir: 'train2014_vqa_i_1024'
-    scale_params: [256,256]
-    crop_params: 228
+    custom_batch_size: 64
+    features_dir: 'train2014_san_i_1024_448'
+    scale_params: [448,448]
+    crop_params: 448
     loader_params: 
-        batch_size: 128
+        batch_size: 1
         num_workers: 4
         pin_memory: True
 
@@ -31,7 +31,7 @@ stats:
 
 
 optim:
-    class: adam
+    class: sgd
     scheduler: 'CustomReduceLROnPlateau'
     scheduler_params:
         maxPatienceToStopTraining: 16
@@ -40,15 +40,15 @@ optim:
             factor: 0.1
             patience: 7
             verbose: True 
-            threshold: 0.05 
+            threshold: 0.02
             threshold_mode: 'rel' 
             cooldown: 0 
             min_lr: 0.00001
             eps: 0.000001
 
     params: 
-        #momentum: 0.9
-        lr: 0.0004
+        momentum: 0.9
+        lr: 0.05
         weight_decay: 0.0005 
     clip: 0.1
 
@@ -61,5 +61,6 @@ model:
     params:
         word_emb_size: 300
         emb_size: 1024
-        image_channel_type: 'I'
-        ques_channel_type: 'LSTM'
+        att_ff_size: 512
+        num_att_layers: 1
+        num_mlp_layers: 1

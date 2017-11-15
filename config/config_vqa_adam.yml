@@ -1,10 +1,10 @@
-prefix: vqa_debug
+prefix: vqa_adam
 verbose: True
 mode: 'train'
 save_dir: 'outputs'
 use_gpu: True
 model_class: vqa
-debug: True
+debug: False
 data:
     path: '/home/cse/phd/csz178058/scratch/vqadata/'
     random_seed: 1
@@ -37,10 +37,10 @@ optim:
         maxPatienceToStopTraining: 16
         base_class_params:
             mode: 'min'
-            factor: 0.1
+            factor: 0.5
             patience: 7
             verbose: True 
-            threshold: 0.05 
+            threshold: 0.02 
             threshold_mode: 'rel' 
             cooldown: 0 
             min_lr: 0.00001

@@ -1,10 +1,10 @@
-prefix: vqa_debug
+prefix: vqa_sgd
 verbose: True
 mode: 'train'
 save_dir: 'outputs'
 use_gpu: True
 model_class: vqa
-debug: True
+debug: False
 data:
     path: '/home/cse/phd/csz178058/scratch/vqadata/'
     random_seed: 1
@@ -31,26 +31,26 @@ stats:
 
 
 optim:
-    class: adam
+    class: sgd
     scheduler: 'CustomReduceLROnPlateau'
     scheduler_params:
         maxPatienceToStopTraining: 16
         base_class_params:
             mode: 'min'
-            factor: 0.1
-            patience: 7
+            factor: 0.5
+            patience: 10
             verbose: True 
-            threshold: 0.05 
+            threshold: 0.02 
             threshold_mode: 'rel' 
             cooldown: 0 
             min_lr: 0.00001
             eps: 0.000001
 
     params: 
-        #momentum: 0.9
-        lr: 0.0004
+        momentum: 0.9
+        lr: 0.1
         weight_decay: 0.0005 
-    clip: 0.1
+    clip: 0.5
 
 training:
     no_of_epochs: 100

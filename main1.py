@@ -54,13 +54,14 @@ def printHeaders(config):
     print("time,epoch,nbatches,nsentences,nwords,top1,top5,loss,dataLoadingTime,trainingTime,lr,whichSet,whichModel")
 
 def accuracy(answer_scores,labels,topk = (1,),dataloader=None,writeToFile=False,fh=None):
+    #Pdb().set_trace()
     maxk = max(topk)
     batchSize = labels.size()[0]
     #nwords = labels.size()[1]
     #Pdb().set_trace()
     _, pred = answer_scores.topk(maxk)
     pred = pred.view(-1,maxk).t()
-    if (pred == 0).sum() >= 1: # why == 1? 
+    if (pred == 0).sum() >= 1: # why == 1?
         _, tpred = answer_scores.topk(maxk+1)
         tpred = tpred.view(-1,maxk+1).t()
         # pred: maxk * examples
@@ -75,9 +76,9 @@ def accuracy(answer_scores,labels,topk = (1,),dataloader=None,writeToFile=False,
         correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
         res.append(correct_k.mul_(1.0 / (batchSize)))
     #
-    if dataloader is not None and batchSize == 1:
-        # added another 0 index while accessing pred[0]
-        print('{0},{1}'.format(dataloader.dataset.itoa[pred[0][0]], dataloader.dataset.itoa[labels[0][0]]),file=fh)
+    if dataloader is not None and fh is not None:
+        #Pdb().set_trace()
+        print('\n'.join(['{0},{1}'.format(dataloader.dataset.itoa[pred[0][x]],dataloader.dataset.itoa[labels[x]]) for x in range(batchSize)]),file=fh)
     #
     return res
 
@@ -129,12 +130,12 @@ def validate(config,dataloader,net,criterion,optimizer,epoch,whichSet,whichModel
         writeToFile = config['training']['write_output_to_file']
         ofh= open(fileName,'w+')
 
-    customBatchSize = 1
-    if(whichSet.lower() == 'trainset'):
-        customBatchSize = config['data']['custom_batch_size']
+    #customBatchSize = 1
+    #if(whichSet.lower() == 'trainset'):
+    customBatchSize = config['data']['custom_batch_size']
 
     print('batch size: {0}'.format(customBatchSize))
-    for i,(inputs,labels,images,image_ids) in uc.customVQADataBatcher(dataloader,config['data']['custom_batch_size']):
+    for i,(inputs,labels,images,image_ids) in uc.customVQADataBatcher(dataloader,customBatchSize):
         if(config['debug'] == True and i>10):
             break
     #for i, (inputs, labels) in enumerate(dataloader, 0):
@@ -355,6 +356,7 @@ import main1 as m
 config = yaml.load(open('config/config_debug.yml'))
 m.enhance_config(config)
 
+onlyTest = False
 
 """
 
