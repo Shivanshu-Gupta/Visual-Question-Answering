@@ -232,8 +232,9 @@ def train(config,trainloader,net,criterion,optimizer,epoch):
         loss.backward()
 
         #Gradient Clipping
-        if config['optim'].has_key('clip'):
-            torch.nn.utils.clip_grad_norm(net.parameters(), config['optim']['clip'])
+        #if config['optim'].has_key('clip'):
+        #    for param in net.parameters():
+        #        param.grad.data.clamp_(-1, 1)
 
         optimizer.step()
         trainingTime.update(time.time() - end)

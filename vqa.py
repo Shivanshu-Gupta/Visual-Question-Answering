@@ -100,9 +100,7 @@ class VQAModel(nn.Module):
             nn.Linear(emb_size, 1000),
             nn.Dropout(p=0.5),
             nn.Tanh(),
-            nn.Linear(1000, output_size),
-            nn.Dropout(p=0.5),
-            nn.Tanh())
+            nn.Linear(1000, output_size))
 
     """
     def save_image_features(self,features,image_ids,features_dir):
