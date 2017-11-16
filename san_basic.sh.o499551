@@ -1,9 +1,0 @@
-time,epoch,nbatches,nsentences,nwords,top1,top5,loss,dataLoadingTime,trainingTime,lr,whichSet,whichModel
-unpickle qan.. actually.. chuck it. i dont need self.data ..
-unpickle intData
-unpickle qan.. actually.. chuck it. i dont need self.data ..
-unpickle intData
-Cuda is True.....converting model and loss fn to .cuda
-=> no checkpoint found at '/home/cse/phd/csz178058/Visual-Question-Answering/outputs/san_basic/checkpoints.pth.tar'
-2017-11-12 06:56:59.649599 0
-how many missing:  1

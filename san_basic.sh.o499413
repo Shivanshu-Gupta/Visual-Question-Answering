@@ -1,5 +1,0 @@
-time,epoch,nbatches,nsentences,nwords,top1,top5,loss,dataLoadingTime,trainingTime,lr,whichSet,whichModel
-unpickle qan.. actually.. chuck it. i dont need self.data ..
-unpickle intData
-unpickle qan.. actually.. chuck it. i dont need self.data ..
-unpickle intData
