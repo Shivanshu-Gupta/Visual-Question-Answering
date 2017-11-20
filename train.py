@@ -6,18 +6,17 @@ from torch.autograd import Variable
 from IPython.core.debugger import Pdb
 
 
-def train(model, train_loader, criterion, optimizer, use_gpu=False):
+def train(model, dataloader, criterion, optimizer, use_gpu=False):
     model.train()  # Set model to training mode
     running_loss = 0.0
     running_corrects = 0
     example_count = 0
     step = 0
     # Iterate over data.
-    for questions, images, answers in train_loader:
-        # print(all_lengths)
-        questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
+    for questions, images, image_ids, answers in dataloader:
         if use_gpu:
-            questions, images, answers = questions.cuda(), images.cuda(), answers.cuda()
+            questions, images, image_ids, answers = questions.cuda(), images.cuda(), image_ids.cuda(), answers.cuda()
+        questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
 
         # zero grad
         optimizer.zero_grad()
@@ -50,11 +49,10 @@ def validate(model, dataloader, criterion, use_gpu=False):
     running_corrects = 0
     example_count = 0
     # Iterate over data.
-    for questions, images, answers in dataloader:
-        # print(all_lengths)
-        questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
+    for questions, images, image_ids, answers in dataloader:
         if use_gpu:
-            questions, images, answers = questions.cuda(), images.cuda(), answers.cuda()
+            questions, images, image_ids, answers = questions.cuda(), images.cuda(), image_ids.cuda(), answers.cuda()
+        questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
 
         # zero grad
         ans_scores = model(images, questions)
@@ -137,12 +135,10 @@ def test_model(model, dataloader, use_gpu=False):
     example_count = 0
     test_begin = time.time()
     # Iterate over data.
-    for questions, images, answers in dataloader:
-        # print(all_lengths)
-        questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
+    for questions, images, image_ids, answers in dataloader:
         if use_gpu:
-            questions, images, answers = questions.cuda(), images.cuda(), answers.cuda()
-
+            questions, images, image_ids, answers = questions.cuda(), images.cuda(), image_ids.cuda(), answers.cuda()
+        questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
         # zero grad
         ans_scores = model(images, questions)
         _, preds = torch.max(ans_scores, 1)
