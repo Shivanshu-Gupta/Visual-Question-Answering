@@ -5,6 +5,7 @@ save_dir: 'outputs'
 use_gpu: True
 model_class: vqa
 debug: False
+seed: 123213
 data:
     path: '/home/cse/phd/csz178058/scratch/vqadata/'
     random_seed: 1
@@ -48,8 +49,11 @@ optim:
 
     params: 
         momentum: 0.9
-        lr: 0.01
-        weight_decay: 0.0005 
+        lr: 0.1      # learning rate
+        # alpha: 0.99     # alpha for adagrad/rmsprop/momentum/adam
+        # beta: 0.995     # beta used for adam
+        # eps: 0.00001       # epsilon that goes into denominator in rmsprop
+        weight_decay: 0.0005
     clip: 0.1
 
 training:

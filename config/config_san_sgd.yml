@@ -5,6 +5,7 @@ save_dir: '/home/cse/phd/csz178058/Visual-Question-Answering/outputs'
 use_gpu: True
 model_class: san
 debug: False
+seed: 123213
 data:
     path: '/home/cse/phd/csz178058/scratch/vqadata/'
     random_seed: 1
@@ -31,7 +32,7 @@ stats:
 
 
 optim:
-    class: sgd
+    class: rmsprop
     scheduler: 'CustomReduceLROnPlateau'
     scheduler_params:
         maxPatienceToStopTraining: 16
@@ -45,11 +46,13 @@ optim:
             cooldown: 0 
             min_lr: 0.00001
             eps: 0.000001
-
     params: 
         momentum: 0.9
-        lr: 0.05
-        weight_decay: 0.0005 
+        lr: 0.0004      # learning rate
+        alpha: 0.99     # alpha for adagrad/rmsprop/momentum/adam
+        beta: 0.995     # beta used for adam
+        eps: 1e-8       # epsilon that goes into denominator in rmsprop
+        weight_decay: 0.0005
     clip: 0.1
 
 training:
