@@ -22,7 +22,7 @@ data:   # Shivanshu: Driver code expects the following config['data']
         emb_dir: 'train2014_san_i_1024_448_vgg'
         batch_size: 32
     images:
-        preprocess: False
+        preprocess: True
         scale: [448,448]
         crop: 448
     loader: 

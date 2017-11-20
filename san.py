@@ -2,13 +2,12 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
-import utils
 
 from IPython.core.debugger import Pdb
 
 
 class ImageEmbedding(nn.Module):
-    def __init__(self, output_size=1024):
+    def __init__(self, output_size=1024,mode='xyz'):
         super(ImageEmbedding, self).__init__()
         # Pdb().set_trace()
         self.cnn = models.vgg16(pretrained=True).features
@@ -19,11 +18,18 @@ class ImageEmbedding(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(512, output_size),
             nn.Tanh())
+        #
+        self.mode = mode
 
     def forward(self, image):
         # Pdb().set_trace()
         # N * 224 * 224 -> N * 512 * 14 * 14
-        feature_map = self.cnn(image)
+        if self.mode not in ['train','val']:
+            feature_map = self.cnn(image)
+        else:
+            feature_map = image
+        #
+        # feature_map = self.cnn(image)
         # N * 512 * 14 * 14 -> N * 512 * 196 -> N * 196 * 512
         feature_map = feature_map.view(-1, 512, 196).transpose(1, 2)
         # N * 196 * 512 -> N * 196 * 1024
@@ -94,20 +100,22 @@ class SANModel(nn.Module):
 
     def forward(self, images, questions, image_ids=None):
         # Pdb().set_trace()
-        if self.mode == 'write_features':
-            image_embeddings = self.image_channel(images)
-            utils.save_image_features(image_embeddings, image_ids, self.features_dir)
-            return 0
-        else:
-            image_embeddings = images
+        #if self.mode == 'write_features':
+        #    image_embeddings = self.image_channel(images)
+        #    utils.save_image_features(image_embeddings, image_ids, self.features_dir)
+        #    return 0
+        #else:
+        #    image_embeddings = images
         #
 
         # Pdb().set_trace()
+        image_embeddings = self.image_channel(images)
         embeds = self.word_embeddings(questions)
-        nbatch = embeds.size()[0]
-        nwords = embeds.size()[1]
+        # nbatch = embeds.size()[0]
+        # nwords = embeds.size()[1]
 
-        ques_embeddings = self.ques_channel(embeds.view(nwords, nbatch, self.word_emb_size))
+        #ques_embeddings = self.ques_channel(embeds.view(nwords, nbatch, self.word_emb_size))
+        ques_embeddings = self.ques_channel(embeds)
         vi = image_embeddings
         u = ques_embeddings
         for att_layer in self.san:

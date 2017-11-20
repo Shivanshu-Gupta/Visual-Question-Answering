@@ -36,7 +36,7 @@ def load_datasets(config, phases):
         img_dir = {x: config[x]['img_dir'] for x in phases}
     else:
         img_dir = {x: config[x]['emb_dir'] for x in phases}
-    datasets = {x: VQADataset(data_dir=config['dir'], qafile=datafiles[x], img_dir=img_dir[x], phase=x, raw_images=raw_images) for x in phases}
+    datasets = {x: VQADataset(data_dir=config['dir'], qafile=datafiles[x], img_dir=img_dir[x], phase=x, img_scale=config['images']['scale'], img_crop=config['images']['crop'], raw_images=raw_images) for x in phases}
     batch_samplers = {x: VQABatchSampler(datasets[x], 32) for x in phases}
 
     dataloaders = {x: DataLoader(datasets[x], batch_sampler=batch_samplers[x], num_workers=config['loader']['workers']) for x in phases}
@@ -51,7 +51,7 @@ def main(config):
     phases = ['train', 'val']
     dataloaders, ques_vocab, ans_vocab = load_datasets(config, phases)
     config['model']['params']['vocab_size'] = len(ques_vocab)
-    config['model']['params']['output_size'] = len(ans_vocab)       # don't want model to predict '<unk>'
+    config['model']['params']['output_size'] = len(ans_vocab) - 1       # don't want model to predict '<unk>'
 
     if config['model_class'] == 'vqa':
         model = VQAModel(**config['model']['params'])
@@ -76,7 +76,8 @@ def main(config):
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
     print("begin training")
-    model = train_model(model, dataloaders, criterion, optimizer, exp_lr_scheduler, '/scratch/cse/dual/cs5130298/vqa',
+    save_dir = os.path.join(os.getcwd(),config['save_dir'])
+    model = train_model(model, dataloaders, criterion, optimizer, exp_lr_scheduler, save_dir,
                         num_epochs=25, use_gpu=config['use_gpu'])
 
 
