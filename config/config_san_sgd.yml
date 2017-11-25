@@ -1,7 +1,7 @@
 prefix: san_sgd
 verbose: True
 mode: 'train'
-save_dir: '/home/cse/phd/csz178058/Visual-Question-Answering/outputs'
+save_dir: 'scratch/vqadata/san_sgd'
 use_gpu: True
 model_class: san
 debug: False
@@ -32,7 +32,7 @@ stats:
 
 
 optim:
-    class: rmsprop
+    class: adam
     scheduler: 'CustomReduceLROnPlateau'
     scheduler_params:
         maxPatienceToStopTraining: 16
@@ -48,10 +48,10 @@ optim:
             eps: 0.000001
     params: 
         momentum: 0.9
-        lr: 0.0004      # learning rate
-        alpha: 0.99     # alpha for adagrad/rmsprop/momentum/adam
-        beta: 0.995     # beta used for adam
-        eps: 1e-8       # epsilon that goes into denominator in rmsprop
+        lr: 0.01      # learning rate
+        #alpha: 0.99     # alpha for adagrad/rmsprop/momentum/adam
+        #beta: 0.995     # beta used for adam
+        #eps: 1e-8       # epsilon that goes into denominator in rmsprop
         weight_decay: 0.0005
     clip: 0.1
 

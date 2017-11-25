@@ -1,7 +1,7 @@
 prefix: vqa_sgd
 verbose: True
 mode: 'train'
-save_dir: 'scratch/vqa/vqa_sgd_0.01'
+save_dir: 'scratch/vqa_sgd'
 use_gpu: True
 model_class: vqa
 debug: False

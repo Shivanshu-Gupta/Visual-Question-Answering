@@ -24,7 +24,7 @@ class ImageEmbedding(nn.Module):
         for param in self.extractor.parameters():
             param.requires_grad = False
 
-        extactor_fc_layers = list(self.extractor.classifier.children())[:-2]
+        extactor_fc_layers = list(self.extractor.classifier.children())[:-1]
         if image_channel_type.lower() == 'normi':
             extactor_fc_layers.append(Normalize(p=2))
         self.extractor.classifier = nn.Sequential(*extactor_fc_layers)

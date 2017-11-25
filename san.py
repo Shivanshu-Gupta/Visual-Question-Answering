@@ -7,7 +7,7 @@ from IPython.core.debugger import Pdb
 
 
 class ImageEmbedding(nn.Module):
-    def __init__(self, output_size=1024,mode='xyz'):
+    def __init__(self, output_size=1024,mode='train'):
         super(ImageEmbedding, self).__init__()
         # Pdb().set_trace()
         self.cnn = models.vgg16(pretrained=True).features
@@ -28,6 +28,7 @@ class ImageEmbedding(nn.Module):
             feature_map = self.cnn(image)
         else:
             feature_map = image
+        #Pdb().set_trace()
         #
         # feature_map = self.cnn(image)
         # N * 512 * 14 * 14 -> N * 512 * 196 -> N * 196 * 512
@@ -108,7 +109,7 @@ class SANModel(nn.Module):
         #    image_embeddings = images
         #
 
-        # Pdb().set_trace()
+        #Pdb().set_trace()
         image_embeddings = self.image_channel(images)
         embeds = self.word_embeddings(questions)
         # nbatch = embeds.size()[0]

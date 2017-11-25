@@ -1,2 +1,2 @@
-cd /home/cse/phd/csz178058/Visual-Question-Answering/
-python main1.py --config config/config_vqa_adam.yml
+cd /home/cse/dual/cs5130298/Academics/COL865-Deep-Learning/assignments/2/Visual-Question-Answering
+python main.py --config config/config_vqa_adam.yml

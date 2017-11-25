@@ -1,7 +1,7 @@
 prefix: san_sgd
 verbose: True
 mode: 'train'
-save_dir: 'scratch/vqa/san_adam'
+save_dir: 'scratch/vqa/san_sgd_features'
 use_gpu: True
 model_class: san
 debug: False
@@ -40,7 +40,7 @@ stats:
 
 
 optim:
-    class: adam
+    class: sgd
     scheduler: 'CustomReduceLROnPlateau'
     scheduler_params:
         maxPatienceToStopTraining: 16
@@ -56,10 +56,10 @@ optim:
             eps: 0.000001
 
     params: 
-        #momentum: 0.9
-        lr: 0.0004      # learning rate
-        #alpha: 0.99     # alpha for adagrad/rmsprop/momentum/adam
-        #beta: 0.995     # beta used for adam
+        momentum: 0.9
+        lr: 0.01      # learning rate
+        # alpha: 0.99     # alpha for adagrad/rmsprop/momentum/adam
+        # beta: 0.995     # beta used for adam
         # eps: 0.00001       # epsilon that goes into denominator in rmsprop
         weight_decay: 0.0005
     
