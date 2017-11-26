@@ -15,7 +15,7 @@ def train(model, dataloader, criterion, optimizer, use_gpu=False):
     step = 0
     # Pdb().set_trace()
     # Iterate over data.
-    for questions, images, image_ids, answers in dataloader:
+    for questions, images, image_ids, answers, ques_ids in dataloader:
         #print('questions size: ', questions.size())
         if use_gpu:
             questions, images, image_ids, answers = questions.cuda(), images.cuda(), image_ids.cuda(), answers.cuda()
@@ -52,7 +52,7 @@ def validate(model, dataloader, criterion, use_gpu=False):
     running_corrects = 0
     example_count = 0
     # Iterate over data.
-    for questions, images, image_ids, answers in dataloader:
+    for questions, images, image_ids, answers, ques_ids in dataloader:
         if use_gpu:
             questions, images, image_ids, answers = questions.cuda(), images.cuda(), image_ids.cuda(), answers.cuda()
         questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
@@ -73,14 +73,14 @@ def validate(model, dataloader, criterion, use_gpu=False):
     return loss, acc
 
 
-def train_model(model, data_loaders, criterion, optimizer, scheduler, save_dir, num_epochs=25, use_gpu=False, best_accuracy=0):
+def train_model(model, data_loaders, criterion, optimizer, scheduler, save_dir, num_epochs=25, use_gpu=False, best_accuracy=0, start_epoch = 0):
     print('Training Model with use_gpu={}...'.format(use_gpu))
     since = time.time()
 
     best_model_wts = model.state_dict()
     best_acc = best_accuracy
     writer = SummaryWriter(save_dir)
-    for epoch in range(num_epochs):
+    for epoch in range(start_epoch, num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
         train_begin = time.time()
@@ -111,7 +111,7 @@ def train_model(model, data_loaders, criterion, optimizer, scheduler, save_dir, 
         }, is_best)
 
         valid_error = 1.0 - val_acc/100.0
-        if type(exp_lr_scheduler) == CustomReduceLROnPlateau:
+        if type(scheduler) == CustomReduceLROnPlateau:
             scheduler.step(valid_error,epoch=epoch)
             if scheduler.shouldStopTraining():
                 print("Stop training as no improvement in accuracy - no of unconstrainedBadEopchs: {0} > {1}".format(scheduler.unconstrainedBadEpochs,scheduler.maxPatienceToStopTraining))
@@ -143,23 +143,29 @@ def save_checkpoint(save_dir, state, is_best):
 
 def test_model(model, dataloader, use_gpu=False):
     model.eval()  # Set model to evaluate mode
+    running_loss = 0.0
     running_corrects = 0
     example_count = 0
     test_begin = time.time()
     # Iterate over data.
-    for questions, images, image_ids, answers in dataloader:
+    for questions, images, image_ids, answers, ques_ids in dataloader:
         if use_gpu:
             questions, images, image_ids, answers = questions.cuda(), images.cuda(), image_ids.cuda(), answers.cuda()
         questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
         # zero grad
         ans_scores = model(images, questions)
         _, preds = torch.max(ans_scores, 1)
-
+        loss = criterion(ans_scores, answers)
+        
         # statistics
+        running_loss += loss.data[0]
         running_corrects += torch.sum((preds == answers).data)
         example_count += answers.size(0)
-    acc = (running_corrects / example_count) * 100
-    print('Test Acc: {:2.3f} ({}/{})'.format(acc, running_corrects, example_count))
+    loss = running_loss / example_count
+    #acc = (running_corrects / example_count) * 100
+    acc = (running_corrects / len(dataloader.dataset)) * 100
+    #print('Test Acc: {:2.3f} ({}/{})'.format(acc, running_corrects, example_count))
+    print('Test Loss: {:.4f} Acc: {:2.3f} ({}/{})'.format(loss, acc, running_corrects, example_count))
     test_time = time.time() - test_begin
     print('Test Time: {:.0f}m {:.0f}s'.format(test_time // 60, test_time % 60))
-    return acc
+    return loss, acc

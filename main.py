@@ -75,7 +75,8 @@ def main(config):
 
     #
     best_acc = 0
-    Pdb().set_trace()
+    #Pdb().set_trace()
+    startEpoch = 0
     if ((config['training']['start_from_checkpoint'])):
         pathForTrainedModel = os.path.join(config['save_dir'],config['checkpoints']['path'])
         if os.path.exists(pathForTrainedModel):
@@ -103,7 +104,7 @@ def main(config):
     print("begin training")
     save_dir = os.path.join(os.getcwd(),config['save_dir'])
     model = train_model(model, dataloaders, criterion, optimizer, exp_lr_scheduler, save_dir,
-                        num_epochs=config['training']['no_of_epochs'], use_gpu=config['use_gpu'], best_accuracy=best_acc)
+                        num_epochs=config['training']['no_of_epochs'], use_gpu=config['use_gpu'], best_accuracy=best_acc, start_epoch=startEpoch)
 
 
 if __name__ == '__main__':

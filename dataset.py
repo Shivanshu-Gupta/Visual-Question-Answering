@@ -13,6 +13,7 @@ class VQADataset(torch.utils.data.Dataset):
     def __init__(self, data_dir, qafile, img_dir, phase, img_scale=(256,256), img_crop=224, raw_images=False):
         self.data_dir = data_dir
         self.examples = pickle.load(open(os.path.join(data_dir, qafile), 'rb'))
+        #Pdb().set_trace()
         if phase == 'train':
             self.load_vocab(data_dir)
         self.transforms = transforms.Compose([
@@ -43,14 +44,14 @@ class VQADataset(torch.utils.data.Dataset):
         return len(self.examples)
 
     def __getitem__(self, idx):
-        _, ques, _, imgid, ans = self.examples[idx]
+        ques_id, ques, _, imgid, ans = self.examples[idx]
         if self.raw_images:
             img = Image.open('{0}/{1}/COCO_{2}2014_{3:012d}.jpg'.format(self.data_dir, self.img_dir, self.phase, imgid))
             img = img.convert('RGB')
             img = self.transforms(img)
         else:
             img = torch.load('{}/{}/{}'.format(self.data_dir, self.img_dir, imgid))
-        return torch.from_numpy(ques), img, imgid, ans
+        return torch.from_numpy(ques), img, imgid, ans, ques_id
 
 
 class RandomSampler:
