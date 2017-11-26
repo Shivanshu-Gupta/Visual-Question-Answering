@@ -13,6 +13,7 @@ from dataset import VQADataset, VQABatchSampler
 from train import train_model
 from vqa import VQAModel
 from san import SANModel
+from scheduler import CustomReduceLROnPlateau
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config', type=str, default='config.yml')
@@ -70,15 +71,39 @@ def main(config):
         optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
                                **config['optim']['params'])
 
+
+
+    #
+    best_acc = 0
+    Pdb().set_trace()
+    if ((config['training']['start_from_checkpoint'])):
+        pathForTrainedModel = os.path.join(config['save_dir'],config['checkpoints']['path'])
+        if os.path.exists(pathForTrainedModel):
+            print("=> loading checkpoint/model found at '{0}'".format(pathForTrainedModel))
+            checkpoint = torch.load(pathForTrainedModel)
+            startEpoch = checkpoint['epoch']
+            model.load_state_dict(checkpoint['state_dict'])
+            #optimizer.load_state_dict(checkpoint['optimizer'])
+
+
+
+
     if config['use_gpu']:
             model = model.cuda()
-    # Decay LR by a factor of gamma every step_size epochs
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+    
+    if 'scheduler' in config['optim'] and config['optim']['scheduler'].lower() == 'CustomReduceLROnPlateau'.lower():
+        print('CustomReduceLROnPlateau')
+        exp_lr_scheduler = CustomReduceLROnPlateau(optimizer, config['optim']['scheduler_params']['maxPatienceToStopTraining'], config['optim']['scheduler_params']['base_class_params'])
+    else:
+        # Decay LR by a factor of gamma every step_size epochs
+        print('lr_scheduler.StepLR')
+        exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+
 
     print("begin training")
     save_dir = os.path.join(os.getcwd(),config['save_dir'])
     model = train_model(model, dataloaders, criterion, optimizer, exp_lr_scheduler, save_dir,
-                        num_epochs=25, use_gpu=config['use_gpu'])
+                        num_epochs=config['training']['no_of_epochs'], use_gpu=config['use_gpu'], best_accuracy=best_acc)
 
 
 if __name__ == '__main__':

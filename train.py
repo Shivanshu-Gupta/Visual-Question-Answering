@@ -4,6 +4,7 @@ from tensorboardX import SummaryWriter
 import torch
 from torch.autograd import Variable
 from IPython.core.debugger import Pdb
+from scheduler import CustomReduceLROnPlateau
 
 
 def train(model, dataloader, criterion, optimizer, use_gpu=False):
@@ -35,7 +36,7 @@ def train(model, dataloader, criterion, optimizer, use_gpu=False):
         running_corrects += torch.sum((preds == answers).data)
         example_count += answers.size(0)
         step += 1
-        if step % 100 == 0:
+        if step % 5000 == 0:
             print('running loss: {}, running_corrects: {}, example_count: {}, acc: {}'.format(running_loss / example_count, running_corrects, example_count, (float(running_corrects) / example_count) * 100))
         # if step * batch_size == 40000:
         #     break
@@ -72,12 +73,12 @@ def validate(model, dataloader, criterion, use_gpu=False):
     return loss, acc
 
 
-def train_model(model, data_loaders, criterion, optimizer, scheduler, save_dir, num_epochs=25, use_gpu=False):
+def train_model(model, data_loaders, criterion, optimizer, scheduler, save_dir, num_epochs=25, use_gpu=False, best_accuracy=0):
     print('Training Model with use_gpu={}...'.format(use_gpu))
     since = time.time()
 
     best_model_wts = model.state_dict()
-    best_acc = 0.0
+    best_acc = best_accuracy
     writer = SummaryWriter(save_dir)
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -109,7 +110,15 @@ def train_model(model, data_loaders, criterion, optimizer, scheduler, save_dir, 
             # 'optimizer': optimizer.state_dict(),
         }, is_best)
 
-        scheduler.step()
+        valid_error = 1.0 - val_acc/100.0
+        if type(exp_lr_scheduler) == CustomReduceLROnPlateau:
+            scheduler.step(valid_error,epoch=epoch)
+            if scheduler.shouldStopTraining():
+                print("Stop training as no improvement in accuracy - no of unconstrainedBadEopchs: {0} > {1}".format(scheduler.unconstrainedBadEpochs,scheduler.maxPatienceToStopTraining))
+                #Pdb().set_trace()
+                break
+        else:
+            scheduler.step()
 
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(
