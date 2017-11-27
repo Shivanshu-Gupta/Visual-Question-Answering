@@ -1,10 +1,12 @@
 import shutil
+import os
 import time
 from tensorboardX import SummaryWriter
 import torch
 from torch.autograd import Variable
 from IPython.core.debugger import Pdb
 from scheduler import CustomReduceLROnPlateau
+import json
 
 
 def train(model, dataloader, criterion, optimizer, use_gpu=False):
@@ -141,31 +143,48 @@ def save_checkpoint(save_dir, state, is_best):
         shutil.copyfile(savepath, save_dir + '/' + 'model_best.pth.tar')
 
 
-def test_model(model, dataloader, use_gpu=False):
+#def load_itoa(answer_file):
+#    itoa = {}
+#    with open(answer_file) as af:
+#        for line in af:
+#            (index, word, _) = line.split('\t')
+#           itoa[int(index)] = word
+#
+#   return itoa
+
+
+def test_model(model, dataloader, itoa, outputfile, use_gpu=False):
     model.eval()  # Set model to evaluate mode
-    running_loss = 0.0
-    running_corrects = 0
     example_count = 0
     test_begin = time.time()
+    outputs = []
+
+    #Pdb().set_trace()
     # Iterate over data.
+    k=0
     for questions, images, image_ids, answers, ques_ids in dataloader:
+        k+=1
+        print("k 5 = %d"%k)
+        if(k <= 4000):
+            continue
+        if(k > 5000):
+            break
+
+
         if use_gpu:
             questions, images, image_ids, answers = questions.cuda(), images.cuda(), image_ids.cuda(), answers.cuda()
         questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
         # zero grad
         ans_scores = model(images, questions)
         _, preds = torch.max(ans_scores, 1)
-        loss = criterion(ans_scores, answers)
+   
+        outputs.extend([{'question_id': ques_ids[i], 'answer': itoa[str(preds.data[i])]} for i in range(ques_ids.size(0))])
+
         
         # statistics
-        running_loss += loss.data[0]
-        running_corrects += torch.sum((preds == answers).data)
         example_count += answers.size(0)
-    loss = running_loss / example_count
-    #acc = (running_corrects / example_count) * 100
-    acc = (running_corrects / len(dataloader.dataset)) * 100
-    #print('Test Acc: {:2.3f} ({}/{})'.format(acc, running_corrects, example_count))
-    print('Test Loss: {:.4f} Acc: {:2.3f} ({}/{})'.format(loss, acc, running_corrects, example_count))
+    
+    json.dump(outputs, open(outputfile,'w'))
+    print('(Example Count: {})'.format(example_count))
     test_time = time.time() - test_begin
     print('Test Time: {:.0f}m {:.0f}s'.format(test_time // 60, test_time % 60))
-    return loss, acc

@@ -85,7 +85,7 @@ class SANModel(nn.Module):
         super(SANModel, self).__init__()
         self.mode = mode
         self.features_dir = features_dir
-        self.image_channel = ImageEmbedding(output_size=emb_size)
+        self.image_channel = ImageEmbedding(output_size=emb_size,mode=mode)
 
         self.word_emb_size = word_emb_size
         self.word_embeddings = nn.Embedding(vocab_size, word_emb_size)

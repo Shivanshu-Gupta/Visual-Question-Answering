@@ -76,7 +76,7 @@ class VQAModel(nn.Module):
         self.mode = mode
         self.features_dir = features_dir
         self.word_emb_size = word_emb_size
-        self.image_channel = ImageEmbedding(image_channel_type, output_size=emb_size)
+        self.image_channel = ImageEmbedding(image_channel_type, output_size=emb_size, mode=mode)
 
         # NOTE the padding_idx below.
         self.word_embeddings = nn.Embedding(vocab_size, word_emb_size)

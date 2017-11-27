@@ -13,13 +13,13 @@ data:   # Shivanshu: Driver code expects the following config['data']
         ques: 'v2_OpenEnded_mscoco_train2014_questions.json'
         ans: 'v2_mscoco_train2014_annotations.json'
         img_dir: 'train2014'
-        emb_dir: 'train2014_vqa_i_1024_vgg'
+        emb_dir: 'train2014_vqa_inorm_1024_vgg'
         batch_size: 32
     val:
         ques: 'v2_OpenEnded_mscoco_val2014_questions.json'
         ans: 'v2_mscoco_val2014_annotations.json'
         img_dir: 'val2014'
-        emb_dir: 'train2014_vqa_i_1024_vgg'
+        emb_dir: 'train2014_vqa_inorm_1024_vgg'
         batch_size: 32
     images:
         preprocess: False
@@ -41,7 +41,7 @@ stats:
 
 optim:
     class: sgd
-    scheduler: 'CustomReduceLROnPlateau'
+    #scheduler: 'CustomReduceLROnPlateau'
     scheduler_params:
         maxPatienceToStopTraining: 16
         base_class_params:

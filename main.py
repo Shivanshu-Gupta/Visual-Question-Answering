@@ -10,7 +10,7 @@ from IPython.core.debugger import Pdb
 
 from preprocess import preprocess
 from dataset import VQADataset, VQABatchSampler
-from train import train_model
+from train import train_model, test_model
 from vqa import VQAModel
 from san import SANModel
 from scheduler import CustomReduceLROnPlateau
@@ -38,7 +38,7 @@ def load_datasets(config, phases):
     else:
         img_dir = {x: config[x]['emb_dir'] for x in phases}
     datasets = {x: VQADataset(data_dir=config['dir'], qafile=datafiles[x], img_dir=img_dir[x], phase=x, img_scale=config['images']['scale'], img_crop=config['images']['crop'], raw_images=raw_images) for x in phases}
-    batch_samplers = {x: VQABatchSampler(datasets[x], 32) for x in phases}
+    batch_samplers = {x: VQABatchSampler(datasets[x], config[x]['batch_size']) for x in phases}
 
     dataloaders = {x: DataLoader(datasets[x], batch_sampler=batch_samplers[x], num_workers=config['loader']['workers']) for x in phases}
     dataset_sizes = {x: len(datasets[x]) for x in phases}
@@ -49,15 +49,18 @@ def load_datasets(config, phases):
 
 
 def main(config):
-    phases = ['train', 'val']
+    if config['mode'] == 'test':
+        phases = ['train','test']
+    else:
+        phases = ['train', 'val']
     dataloaders, ques_vocab, ans_vocab = load_datasets(config, phases)
     config['model']['params']['vocab_size'] = len(ques_vocab)
     config['model']['params']['output_size'] = len(ans_vocab) - 1       # don't want model to predict '<unk>'
 
     if config['model_class'] == 'vqa':
-        model = VQAModel(**config['model']['params'])
+        model = VQAModel(mode=config['mode'],**config['model']['params'])
     elif config['model_class'] == 'san':
-        model = SANModel(**config['model']['params'])
+        model = SANModel(mode=config['mode'],**config['model']['params'])
     print(model)
     criterion = nn.CrossEntropyLoss()
 
@@ -88,24 +91,33 @@ def main(config):
 
 
 
+    print('config mode ',config['mode']) 
+    save_dir = os.path.join(os.getcwd(),config['save_dir'])
 
     if config['use_gpu']:
             model = model.cuda()
+
+    if config['mode'] == 'train':
     
-    if 'scheduler' in config['optim'] and config['optim']['scheduler'].lower() == 'CustomReduceLROnPlateau'.lower():
-        print('CustomReduceLROnPlateau')
-        exp_lr_scheduler = CustomReduceLROnPlateau(optimizer, config['optim']['scheduler_params']['maxPatienceToStopTraining'], config['optim']['scheduler_params']['base_class_params'])
+        if 'scheduler' in config['optim'] and config['optim']['scheduler'].lower() == 'CustomReduceLROnPlateau'.lower():
+            print('CustomReduceLROnPlateau')
+            exp_lr_scheduler = CustomReduceLROnPlateau(optimizer, config['optim']['scheduler_params']['maxPatienceToStopTraining'], config['optim']['scheduler_params']['base_class_params'])
+        else:
+            # Decay LR by a factor of gamma every step_size epochs
+            print('lr_scheduler.StepLR')
+            exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+
+
+        print("begin training")
+        model = train_model(model, dataloaders, criterion, optimizer, exp_lr_scheduler, save_dir,
+                            num_epochs=config['training']['no_of_epochs'], use_gpu=config['use_gpu'], best_accuracy=best_acc, start_epoch=startEpoch)
+
+    elif config['mode'] == 'test':
+        outputfile = os.path.join(save_dir, config['mode']+"_5.json")
+        test_model(model, dataloaders['test'], VQADataset.ans_vocab, outputfile, use_gpu=config['use_gpu'])
+
     else:
-        # Decay LR by a factor of gamma every step_size epochs
-        print('lr_scheduler.StepLR')
-        exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
-
-
-    print("begin training")
-    save_dir = os.path.join(os.getcwd(),config['save_dir'])
-    model = train_model(model, dataloaders, criterion, optimizer, exp_lr_scheduler, save_dir,
-                        num_epochs=config['training']['no_of_epochs'], use_gpu=config['use_gpu'], best_accuracy=best_acc, start_epoch=startEpoch)
-
+        print("Invalid config mode %s !!"%config['mode'])
 
 if __name__ == '__main__':
     global args

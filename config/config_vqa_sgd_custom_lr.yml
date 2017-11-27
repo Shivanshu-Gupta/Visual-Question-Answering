@@ -1,7 +1,7 @@
 prefix: vqa_sgd
 verbose: True
 mode: 'train'
-save_dir: 'scratch/vqa_sgd_custom_lr1'
+save_dir: 'scratch/vqa/vqa_sgd'
 use_gpu: True
 model_class: vqa
 debug: False
@@ -21,8 +21,14 @@ data:   # Shivanshu: Driver code expects the following config['data']
         img_dir: 'val2014'
         emb_dir: 'train2014_vqa_i_1024_vgg'
         batch_size: 32
+    test:
+        ques: 'v2_OpenEnded_mscoco_test-dev2015_questions.json'
+        ans: 'v2_mscoco_val2014_annotations.json'
+        img_dir: 'val2014'
+        emb_dir: 'train2014_vqa_i_1024_vgg'
+        batch_size: 32
     images:
-        preprocess: False
+        preprocess: True
         scale: [256,256]
         crop: 224
     loader: 
@@ -41,7 +47,7 @@ stats:
 
 optim:
     class: sgd
-    scheduler: 'CustomReduceLROnPlateau1'
+    #scheduler: 'CustomReduceLROnPlateau1'
     scheduler_params:
         maxPatienceToStopTraining: 16
         base_class_params:

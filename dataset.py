@@ -46,7 +46,7 @@ class VQADataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         ques_id, ques, _, imgid, ans = self.examples[idx]
         if self.raw_images:
-            img = Image.open('{0}/{1}/COCO_{2}2014_{3:012d}.jpg'.format(self.data_dir, self.img_dir, self.phase, imgid))
+            img = Image.open('{0}/{1}/COCO_{1}_{2:012d}.jpg'.format(self.data_dir, self.img_dir, imgid))
             img = img.convert('RGB')
             img = self.transforms(img)
         else:

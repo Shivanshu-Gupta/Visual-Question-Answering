@@ -1,9 +1,9 @@
-prefix: vqa_sgd
+prefix: san_sgd
 verbose: True
-mode: 'train'
-save_dir: 'scratch/vqa/vqa_inorm_deeplstm'
+mode: 'test'
+save_dir: 'scratch/vqa/san_sgd_features'
 use_gpu: True
-model_class: vqa
+model_class: san
 debug: False
 seed: 123213
 data:   # Shivanshu: Driver code expects the following config['data']
@@ -13,24 +13,30 @@ data:   # Shivanshu: Driver code expects the following config['data']
         ques: 'v2_OpenEnded_mscoco_train2014_questions.json'
         ans: 'v2_mscoco_train2014_annotations.json'
         img_dir: 'train2014'
-        emb_dir: 'train2014_vqa_inorm_1024_vgg'
+        emb_dir: 'train2014_san_i_1024_448_vgg'
         batch_size: 32
     val:
         ques: 'v2_OpenEnded_mscoco_val2014_questions.json'
         ans: 'v2_mscoco_val2014_annotations.json'
         img_dir: 'val2014'
-        emb_dir: 'train2014_vqa_inorm_1024_vgg'
+        emb_dir: 'train2014_san_i_1024_448_vgg'
         batch_size: 32
+    test:
+        ques: 'v2_OpenEnded_mscoco_test-dev2015_questions.json'
+        ans: 'v2_mscoco_val2014_annotations.json'
+        img_dir: 'test2015'
+        emb_dir: 'train2014_vqa_i_1024_vgg'
+        batch_size: 64
     images:
-        preprocess: False
-        scale: [256,256]
-        crop: 224
+        preprocess: True
+        scale: [448,448]
+        crop: 448
     loader: 
         workers: 4
         pin_memory: True
 
 checkpoints:
-    path: 'checkpoints.pth.tar'
+    path: 'model_best.pth.tar'
     best_model_path: 'best_model_checkpoint.pth.tar'
 
 stats:
@@ -62,7 +68,8 @@ optim:
         # beta: 0.995     # beta used for adam
         # eps: 0.00001       # epsilon that goes into denominator in rmsprop
         weight_decay: 0.0005
-    clip: 0.1
+    
+    #clip: 0.1
 
 training:
     no_of_epochs: 100
@@ -73,5 +80,6 @@ model:
     params:
         word_emb_size: 300
         emb_size: 1024
-        image_channel_type: 'NORMI'
-        ques_channel_type: 'DEEPLSTM'
+        # ques_channel_type: 'DEEPLSTM'
+        att_ff_size: 512
+        num_att_layers: 1
