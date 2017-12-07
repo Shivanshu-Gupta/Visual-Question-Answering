@@ -25,7 +25,7 @@ def train(model, dataloader, criterion, optimizer, use_gpu=False):
 
         # zero grad
         optimizer.zero_grad()
-        ans_scores = model(images, questions)
+        ans_scores = model(images, questions, image_ids)
         _, preds = torch.max(ans_scores, 1)
         loss = criterion(ans_scores, answers)
 
@@ -60,7 +60,7 @@ def validate(model, dataloader, criterion, use_gpu=False):
         questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
 
         # zero grad
-        ans_scores = model(images, questions)
+        ans_scores = model(images, questions, image_ids)
         _, preds = torch.max(ans_scores, 1)
         loss = criterion(ans_scores, answers)
 
@@ -112,6 +112,7 @@ def train_model(model, data_loaders, criterion, optimizer, scheduler, save_dir, 
             # 'optimizer': optimizer.state_dict(),
         }, is_best)
 
+        writer.export_scalars_to_json(save_dir + "/all_scalars.json")
         valid_error = 1.0 - val_acc/100.0
         if type(scheduler) == CustomReduceLROnPlateau:
             scheduler.step(valid_error,epoch=epoch)
@@ -161,26 +162,19 @@ def test_model(model, dataloader, itoa, outputfile, use_gpu=False):
 
     #Pdb().set_trace()
     # Iterate over data.
-    k=0
     for questions, images, image_ids, answers, ques_ids in dataloader:
-        k+=1
-        print("k 5 = %d"%k)
-        if(k <= 4000):
-            continue
-        if(k > 5000):
-            break
-
 
         if use_gpu:
             questions, images, image_ids, answers = questions.cuda(), images.cuda(), image_ids.cuda(), answers.cuda()
         questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
         # zero grad
-        ans_scores = model(images, questions)
+        ans_scores = model(images, questions, image_ids)
         _, preds = torch.max(ans_scores, 1)
    
         outputs.extend([{'question_id': ques_ids[i], 'answer': itoa[str(preds.data[i])]} for i in range(ques_ids.size(0))])
 
-        
+        if example_count % 100 == 0:
+            print('(Example Count: {})'.format(example_count))
         # statistics
         example_count += answers.size(0)
     
