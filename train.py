@@ -1,5 +1,4 @@
 import shutil
-import os
 import time
 from tensorboardX import SummaryWriter
 import torch
@@ -18,7 +17,7 @@ def train(model, dataloader, criterion, optimizer, use_gpu=False):
     # Pdb().set_trace()
     # Iterate over data.
     for questions, images, image_ids, answers, ques_ids in dataloader:
-        #print('questions size: ', questions.size())
+        # print('questions size: ', questions.size())
         if use_gpu:
             questions, images, image_ids, answers = questions.cuda(), images.cuda(), image_ids.cuda(), answers.cuda()
         questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
@@ -39,12 +38,14 @@ def train(model, dataloader, criterion, optimizer, use_gpu=False):
         example_count += answers.size(0)
         step += 1
         if step % 5000 == 0:
-            print('running loss: {}, running_corrects: {}, example_count: {}, acc: {}'.format(running_loss / example_count, running_corrects, example_count, (float(running_corrects) / example_count) * 100))
+            print('running loss: {}, running_corrects: {}, example_count: {}, acc: {}'.format(
+                running_loss / example_count, running_corrects, example_count, (float(running_corrects) / example_count) * 100))
         # if step * batch_size == 40000:
         #     break
     loss = running_loss / example_count
     acc = (running_corrects / len(dataloader.dataset)) * 100
-    print('Train Loss: {:.4f} Acc: {:2.3f} ({}/{})'.format(loss, acc, running_corrects, example_count))
+    print('Train Loss: {:.4f} Acc: {:2.3f} ({}/{})'.format(loss,
+                                                           acc, running_corrects, example_count))
     return loss, acc
 
 
@@ -56,8 +57,10 @@ def validate(model, dataloader, criterion, use_gpu=False):
     # Iterate over data.
     for questions, images, image_ids, answers, ques_ids in dataloader:
         if use_gpu:
-            questions, images, image_ids, answers = questions.cuda(), images.cuda(), image_ids.cuda(), answers.cuda()
-        questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
+            questions, images, image_ids, answers = questions.cuda(
+            ), images.cuda(), image_ids.cuda(), answers.cuda()
+        questions, images, answers = Variable(questions).transpose(
+            0, 1), Variable(images), Variable(answers)
 
         # zero grad
         ans_scores = model(images, questions, image_ids)
@@ -69,13 +72,14 @@ def validate(model, dataloader, criterion, use_gpu=False):
         running_corrects += torch.sum((preds == answers).data)
         example_count += answers.size(0)
     loss = running_loss / example_count
-    #acc = (running_corrects / example_count) * 100
+    # acc = (running_corrects / example_count) * 100
     acc = (running_corrects / len(dataloader.dataset)) * 100
-    print('Validation Loss: {:.4f} Acc: {:2.3f} ({}/{})'.format(loss, acc, running_corrects, example_count))
+    print('Validation Loss: {:.4f} Acc: {:2.3f} ({}/{})'.format(loss,
+                                                                acc, running_corrects, example_count))
     return loss, acc
 
 
-def train_model(model, data_loaders, criterion, optimizer, scheduler, save_dir, num_epochs=25, use_gpu=False, best_accuracy=0, start_epoch = 0):
+def train_model(model, data_loaders, criterion, optimizer, scheduler, save_dir, num_epochs=25, use_gpu=False, best_accuracy=0, start_epoch=0):
     print('Training Model with use_gpu={}...'.format(use_gpu))
     since = time.time()
 
@@ -86,16 +90,20 @@ def train_model(model, data_loaders, criterion, optimizer, scheduler, save_dir, 
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
         train_begin = time.time()
-        train_loss, train_acc = train(model, data_loaders['train'], criterion, optimizer, use_gpu)
+        train_loss, train_acc = train(
+            model, data_loaders['train'], criterion, optimizer, use_gpu)
         train_time = time.time() - train_begin
-        print('Epoch Train Time: {:.0f}m {:.0f}s'.format(train_time // 60, train_time % 60))
+        print('Epoch Train Time: {:.0f}m {:.0f}s'.format(
+            train_time // 60, train_time % 60))
         writer.add_scalar('Train Loss', train_loss, epoch)
         writer.add_scalar('Train Accuracy', train_acc, epoch)
 
         validation_begin = time.time()
-        val_loss, val_acc = validate(model, data_loaders['val'], criterion, use_gpu)
+        val_loss, val_acc = validate(
+            model, data_loaders['val'], criterion, use_gpu)
         validation_time = time.time() - validation_begin
-        print('Epoch Validation Time: {:.0f}m {:.0f}s'.format(validation_time // 60, validation_time % 60))
+        print('Epoch Validation Time: {:.0f}m {:.0f}s'.format(
+            validation_time // 60, validation_time % 60))
         writer.add_scalar('Validation Loss', val_loss, epoch)
         writer.add_scalar('Validation Accuracy', val_acc, epoch)
 
@@ -113,12 +121,13 @@ def train_model(model, data_loaders, criterion, optimizer, scheduler, save_dir, 
         }, is_best)
 
         writer.export_scalars_to_json(save_dir + "/all_scalars.json")
-        valid_error = 1.0 - val_acc/100.0
+        valid_error = 1.0 - val_acc / 100.0
         if type(scheduler) == CustomReduceLROnPlateau:
-            scheduler.step(valid_error,epoch=epoch)
+            scheduler.step(valid_error, epoch=epoch)
             if scheduler.shouldStopTraining():
-                print("Stop training as no improvement in accuracy - no of unconstrainedBadEopchs: {0} > {1}".format(scheduler.unconstrainedBadEpochs,scheduler.maxPatienceToStopTraining))
-                #Pdb().set_trace()
+                print("Stop training as no improvement in accuracy - no of unconstrainedBadEopchs: {0} > {1}".format(
+                    scheduler.unconstrainedBadEpochs, scheduler.maxPatienceToStopTraining))
+                # Pdb().set_trace()
                 break
         else:
             scheduler.step()
@@ -144,41 +153,33 @@ def save_checkpoint(save_dir, state, is_best):
         shutil.copyfile(savepath, save_dir + '/' + 'model_best.pth.tar')
 
 
-#def load_itoa(answer_file):
-#    itoa = {}
-#    with open(answer_file) as af:
-#        for line in af:
-#            (index, word, _) = line.split('\t')
-#           itoa[int(index)] = word
-#
-#   return itoa
-
-
 def test_model(model, dataloader, itoa, outputfile, use_gpu=False):
     model.eval()  # Set model to evaluate mode
     example_count = 0
     test_begin = time.time()
     outputs = []
 
-    #Pdb().set_trace()
     # Iterate over data.
     for questions, images, image_ids, answers, ques_ids in dataloader:
 
         if use_gpu:
-            questions, images, image_ids, answers = questions.cuda(), images.cuda(), image_ids.cuda(), answers.cuda()
-        questions, images, answers = Variable(questions).transpose(0, 1), Variable(images), Variable(answers)
+            questions, images, image_ids, answers = questions.cuda(
+            ), images.cuda(), image_ids.cuda(), answers.cuda()
+        questions, images, answers = Variable(questions).transpose(
+            0, 1), Variable(images), Variable(answers)
         # zero grad
         ans_scores = model(images, questions, image_ids)
         _, preds = torch.max(ans_scores, 1)
-   
-        outputs.extend([{'question_id': ques_ids[i], 'answer': itoa[str(preds.data[i])]} for i in range(ques_ids.size(0))])
+
+        outputs.extend([{'question_id': ques_ids[i], 'answer': itoa[str(
+            preds.data[i])]} for i in range(ques_ids.size(0))])
 
         if example_count % 100 == 0:
             print('(Example Count: {})'.format(example_count))
         # statistics
         example_count += answers.size(0)
-    
-    json.dump(outputs, open(outputfile,'w'))
+
+    json.dump(outputs, open(outputfile, 'w'))
     print('(Example Count: {})'.format(example_count))
     test_time = time.time() - test_begin
     print('Test Time: {:.0f}m {:.0f}s'.format(test_time // 60, test_time % 60))

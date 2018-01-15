@@ -11,7 +11,7 @@ from IPython.core.debugger import Pdb
 from preprocess import preprocess
 from dataset import VQADataset, VQABatchSampler
 from train import train_model, test_model
-#from vqa_mutan_bilstm import VQAModel as VQAModel
+# from vqa_mutan_bilstm import VQAModel as VQAModel
 from vqa import VQAModel
 from san import SANModel
 from scheduler import CustomReduceLROnPlateau
@@ -58,19 +58,17 @@ def main(config):
     else:
         phases = ['train', 'val']
     dataloaders, ques_vocab, ans_vocab = load_datasets(config, phases)
-    config['model']['params']['vocab_size'] = len(ques_vocab)
-    config['model']['params']['output_size'] = len(
-        ans_vocab) - 1       # don't want model to predict '<unk>'
-    config['model']['params']['is_input_features'] = not(
-        'preprocess' in config['data']['images'] and config['data']['images']['preprocess'])
 
-    # which features dir? test train or validate?
+    # add model parameters to config
+    config['model']['params']['vocab_size'] = len(ques_vocab)
+    config['model']['params']['output_size'] = len(ans_vocab) - 1   # -1 as don't want model to predict '<unk>'
+    config['model']['params']['exatract_img_features'] = 'preprocess' in config['data']['images'] and config['data']['images']['preprocess']
+    # which features dir? test, train or validate?
     config['model']['params']['features_dir'] = os.path.join(
         config['data']['dir'], config['data']['test']['emb_dir'])
-
-    if config['model_class'] == 'vqa':
+    if config['model']['type'] == 'vqa':
         model = VQAModel(mode=config['mode'], **config['model']['params'])
-    elif config['model_class'] == 'san':
+    elif config['model']['type'] == 'san':
         model = SANModel(mode=config['mode'], **config['model']['params'])
     print(model)
     criterion = nn.CrossEntropyLoss()
@@ -85,13 +83,12 @@ def main(config):
         optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
                                **config['optim']['params'])
 
-    #
-    best_acc = 0
+        best_acc = 0
     # Pdb().set_trace()
     startEpoch = 0
-    if ((config['training']['start_from_checkpoint'])):
-        pathForTrainedModel = os.path.join(
-            config['save_dir'], config['checkpoints']['path'])
+    if 'reload' in config['model']:
+        pathForTrainedModel = os.path.join(config['save_dir'],
+                                           config['model']['reload'])
         if os.path.exists(pathForTrainedModel):
             print(
                 "=> loading checkpoint/model found at '{0}'".format(pathForTrainedModel))
@@ -99,15 +96,13 @@ def main(config):
             startEpoch = checkpoint['epoch']
             model.load_state_dict(checkpoint['state_dict'])
             # optimizer.load_state_dict(checkpoint['optimizer'])
+    if config['use_gpu']:
+        model = model.cuda()
 
     print('config mode ', config['mode'])
     save_dir = os.path.join(os.getcwd(), config['save_dir'])
 
-    if config['use_gpu']:
-        model = model.cuda()
-
     if config['mode'] == 'train':
-
         if 'scheduler' in config['optim'] and config['optim']['scheduler'].lower() == 'CustomReduceLROnPlateau'.lower():
             print('CustomReduceLROnPlateau')
             exp_lr_scheduler = CustomReduceLROnPlateau(
@@ -115,18 +110,15 @@ def main(config):
         else:
             # Decay LR by a factor of gamma every step_size epochs
             print('lr_scheduler.StepLR')
-            exp_lr_scheduler = lr_scheduler.StepLR(
-                optimizer, step_size=7, gamma=0.1)
+            exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
         print("begin training")
         model = train_model(model, dataloaders, criterion, optimizer, exp_lr_scheduler, save_dir,
-                            num_epochs=config['training']['no_of_epochs'], use_gpu=config['use_gpu'], best_accuracy=best_acc, start_epoch=startEpoch)
-
+                            num_epochs=config['optim']['n_epochs'], use_gpu=config['use_gpu'], best_accuracy=best_acc, start_epoch=startEpoch)
     elif config['mode'] == 'test':
-        outputfile = os.path.join(save_dir, config['mode'] + "_5.json")
+        outputfile = os.path.join(save_dir, config['mode'] + ".json")
         test_model(model, dataloaders['test'], VQADataset.ans_vocab,
                    outputfile, use_gpu=config['use_gpu'])
-
     else:
         print("Invalid config mode %s !!" % config['mode'])
 

@@ -109,3 +109,6 @@ sftp-config.json
 outputs/
 *.sh.*
 scratch
+
+# old config files
+config/all

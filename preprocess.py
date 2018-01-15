@@ -6,28 +6,32 @@ from torchtext import data
 
 
 def _create_tsv(data_dir, quesfile, ansfile, outfile, ansid=None):
-    quesfile, ansfile, outfile = join(data_dir, quesfile), join(data_dir, ansfile), join(data_dir, outfile)
+    quesfile = join(data_dir, quesfile)
     ques_json = json.load(open(quesfile))
     ques = [q['question'] for q in ques_json['questions']]
     quesid = [q['question_id'] for q in ques_json['questions']]
     imgid = [q['image_id'] for q in ques_json['questions']]
-    ans_json = json.load(open(ansfile))
-    ans = [a['multiple_choice_answer'] for a in ans_json['annotations']]
+    if ansfile is not None:
+        ansfile = join(data_dir, ansfile)
+        ans_json = json.load(open(ansfile))
+        ans = [a['multiple_choice_answer'] for a in ans_json['annotations']]
+        k = 1000
+        if ansid is None:
+                c = Counter(ans)
+                topk = c.most_common(n=k)
+                ansid = dict((a[0], i) for i, a in enumerate(topk))
 
-    k = 1000
-    if ansid is None:
-            c = Counter(ans)
-            topk = c.most_common(n=k)
-            ansid = dict((a[0], i) for i, a in enumerate(topk))
+                ans_itos_file = join(data_dir, 'ans_itos.tsv')
+                print('Dumping ans-to-idx map to {}'.format(ans_itos_file))
+                with open(ans_itos_file, 'w') as fout:
+                    for i, (a, freq) in enumerate(topk):
+                        fout.write('{}\t{}\t{}'.format(i, a, freq) + '\n')
+                    fout.write('{}\t{}\t{}'.format(k, '<unk>', 'rest') + '\n')
 
-            ans_itos_file = join(data_dir, 'ans_itos.tsv')
-            print('Dumping ans-to-idx map to {}'.format(ans_itos_file))
-            with open(ans_itos_file, 'w') as fout:
-                for i, (a, freq) in enumerate(topk):
-                    fout.write('{}\t{}\t{}'.format(i, a, freq) + '\n')
-                fout.write('{}\t{}\t{}'.format(k, '<unk>', 'rest') + '\n')
-
-    ans = [ansid[a] if a in ansid else k for a in ans]
+        ans = [ansid[a] if a in ansid else k for a in ans]
+    else:
+        ans = [0 for q in ques]
+    outfile = join(data_dir, outfile)
     with open(outfile, 'w') as out:
             for q, qid, i, a in zip(ques, quesid, imgid, ans):
                     out.write('\t'.join([str(qid), q, str(i), str(a)]) + '\n')

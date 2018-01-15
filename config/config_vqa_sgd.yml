@@ -3,17 +3,16 @@ verbose: True
 mode: 'train'
 save_dir: 'scratch/vqa_sgd'
 use_gpu: True
-model_class: vqa
 debug: False
 seed: 123213
-data:   # Shivanshu: Driver code expects the following config['data']
-    preprocess: False
-    dir: '/home/cse/phd/csz178058/scratch/vqadata/'
+data:
+    preprocess: False   # True/False - whether to preprocess vqa data files
+    dir: '/home/cse/phd/csz178058/scratch/vqadata/' # root data directory
     train:
         ques: 'v2_OpenEnded_mscoco_train2014_questions.json'
         ans: 'v2_mscoco_train2014_annotations.json'
-        img_dir: 'train2014'
-        emb_dir: 'train2014_vqa_i_1024_vgg'
+        img_dir: 'train2014' # raw images
+        emb_dir: 'train2014_vqa_i_1024_vgg' # directory with image embeddings - depends on the model being used.
         batch_size: 32
     val:
         ques: 'v2_OpenEnded_mscoco_val2014_questions.json'
@@ -22,25 +21,25 @@ data:   # Shivanshu: Driver code expects the following config['data']
         emb_dir: 'train2014_vqa_i_1024_vgg'
         batch_size: 32
     images:
-        preprocess: False
+        preprocess: False   # True/False - whether to use embeddings or use raw images and generate embeddings
         scale: [256,256]
         crop: 224
     loader: 
         workers: 4
         pin_memory: True
 
-checkpoints:
-    path: 'checkpoints.pth.tar'
-    best_model_path: 'best_model_checkpoint.pth.tar'
-
-stats:
-    trainTimeLogs: 'trainingTime.csv'
-    accuracyLogs: 'accuracy.csv'
-    outputOverValidation: 'validationTags.txt'
-
+model:
+    type: vqa
+    params:
+        word_emb_size: 300
+        emb_size: 1024
+        image_channel_type: 'I'     # I/norm I
+        ques_channel_type: 'lstm'   # lstm/deeplstm
+        use_mutan: True             # True/False - to use mutan fusion on question and image embeddings or not
+    reload: 'checkpoints.pth.tar'
 
 optim:
-    class: sgd
+    class: sgd      # sgd/rmsprop/adam
     scheduler: 'CustomReduceLROnPlateau'
     scheduler_params:
         maxPatienceToStopTraining: 16
@@ -62,16 +61,4 @@ optim:
         # beta: 0.995     # beta used for adam
         # eps: 0.00001       # epsilon that goes into denominator in rmsprop
         weight_decay: 0.0005
-    clip: 0.1
-
-training:
-    no_of_epochs: 100
-    start_from_checkpoint: True
-    write_output_to_file: True
-
-model:
-    params:
-        word_emb_size: 300
-        emb_size: 1024
-        image_channel_type: 'I'
-        ques_channel_type: 'LSTM'
+    n_epochs: 100
